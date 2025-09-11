@@ -12,6 +12,8 @@ import Checkbox from '../../components/auth_screens/checkbox'
 import WideButton from '../../components/auth_screens/wideButton'
 
 const SignupScreen = () => {
+        const [isChecked, setIsChecked] = React.useState<boolean>(false);
+    
     return (
 
         <KeyboardAvoidingView
@@ -71,7 +73,7 @@ const SignupScreen = () => {
                         <CircularInputField placeHolder='Enter your Password' type='text' />
                     </View>
 
-                    <Checkbox />
+                    <Checkbox isChecked={isChecked} onChange={() => setIsChecked(!isChecked)}  />
 
                     <WideButton onTap={() => { }}>Create Account</WideButton>
                     <Text style={[global_style.text, { color: color_scheme.link_color, textAlign: "center" }]}>Already have an Account?</Text>
