@@ -33,8 +33,8 @@ const AppContextProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     async function getPlacesNearby(long: number, lat: number) {
-        const request = await axiosGet(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${long},${lat}&radius=2000&keyword=coffee&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528`)
-        console.log(request);
+        // const request = await axiosGet(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${long},${lat}&radius=2000&keyword=coffee&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528`)
+        // console.log(request);
     }
 
     

@@ -2,6 +2,8 @@
   "expo": {
     "name": "amav1",
     "slug": "amav1",
+    "scheme": "amav1",
+    "platforms": ["ios", "android"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,7 +23,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -69,7 +76,8 @@
           "googleMapsApiKey": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528",
           "googleMapsApiKeyIos": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528"
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }
