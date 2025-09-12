@@ -31,7 +31,9 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/PlusJakartaSans-Regular.ttf"],
+          "fonts": [
+            "./assets/fonts/PlusJakartaSans-Regular.ttf"
+          ],
           "android": {
             "fonts": [
               {
@@ -39,7 +41,7 @@
                 "fontDefinitions": [
                   {
                     "path": "./assets/fonts/PlusJakartaSans-Regular.ttf",
-                    "weight": 400, 
+                    "weight": 400,
                     "style": "normal"
                   }
                 ]
@@ -53,6 +55,19 @@
               }
             ]
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location so we can easily detect the shops near you."
+        }
+      ],
+      [
+        "expo-maps",
+        {
+          "googleMapsApiKey": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528",
+          "googleMapsApiKeyIos": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528"
         }
       ]
     ]

@@ -63,7 +63,7 @@ const LoginPage = () => {
 
                     <Checkbox isChecked={isChecked} onChange={() => setIsChecked(!isChecked)} />
 
-                    <WideButton onTap={() => { }}>Login</WideButton>
+                    <WideButton onTap={() => router.push("home_screen/home")}>Login</WideButton>
                     <Text style={[global_style.text, { color: color_scheme.link_color, textAlign: "center" }]}>Don’t have an Account?</Text>
                     <TouchableOpacity style={global_style.centered} onPress={() => router.push("(auth)/signup")}>
                         <Text style={[global_style.text, { color: color_scheme.dark, textAlign: "center", textDecorationLine: "underline" }]}>Sign up</Text>

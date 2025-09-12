@@ -9,8 +9,9 @@ export const color_scheme = {
     outline: "#0000001F",
     dark_outline: "#1E1E1E",
     text_color: "#1E1E1E",
-    placeholder_color: "848484",
-    grey_bg: "#E1E1E1"
+    placeholder_color: "#848484",
+    grey_bg: "#E1E1E1",
+    borderless: "#FFF7F7"
 }
 
 

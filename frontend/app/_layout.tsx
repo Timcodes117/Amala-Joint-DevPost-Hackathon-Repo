@@ -1,15 +1,20 @@
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { font_name, font_name_bold } from "../utils/constants/app_constants";
+import AppContextProvider from "../contexts/app";
 
-SplashScreen.preventAutoHideAsync()
+SplashScreen.preventAutoHideAsync();
 
-export default function Layout() {
-    const [loaded, error] = useFonts({
-    [font_name]: require('../assets/fonts/PlusJakartaSans-Regular.ttf'),
-    [font_name_bold]: require('../assets/fonts/PlusJakartaSans-Bold.ttf'),
+export default function RootLayout() {
+  const [loaded, error] = useFonts({
+    [font_name]: require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
+    [font_name_bold]: require("../assets/fonts/PlusJakartaSans-Bold.ttf"),
   });
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // 👈 control auth state
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     if (loaded || error) {
@@ -17,13 +22,33 @@ export default function Layout() {
     }
   }, [loaded, error]);
 
-  if (!loaded) {
-    return null;
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Replace with AsyncStorage / SecureStore check
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setIsLoggedIn(true); // 👈 set true if logged in
+      setChecking(false);
+    };
+    checkAuth();
+  }, []);
+
+  if (!loaded || checking) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
+
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" options={{ title: "Home", headerShown: false }}   />
-    </Stack>
+    <AppContextProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        {isLoggedIn ? (
+          <Stack.Screen name="home_screen" />
+        ) : (
+          <Stack.Screen name="(auth)" />
+        )}
+      </Stack>
+    </AppContextProvider>
   );
 }
-   
