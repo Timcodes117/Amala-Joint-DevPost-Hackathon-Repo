@@ -15,7 +15,7 @@ const Checkbox = (props:checkboxProps) => {
     return (
         <TouchableOpacity onPress={props.onChange} style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 5 }}>
             <View style={[input_style.input_container, global_style.centered, { width: 14, height: 14, borderColor: color_scheme.dark_outline, borderRadius: 4 }]}>
-                {props.isChecked && <CheckIcon size={12} />}
+                {props.isChecked && <CheckIcon size={12} color={color_scheme.button_color} />}
             </View>
             <Text style={[global_style.text, { fontSize: 12 }]}>By checking this you agree to our terms and conditions.</Text>
         </TouchableOpacity>

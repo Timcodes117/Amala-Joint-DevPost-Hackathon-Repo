@@ -85,7 +85,7 @@ export default function App() {
         </View>
 
         {currentIndex < 2 && <View style={[onboarding_sheet.centered, {
-          width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 40,
+          width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10,
         }]}>
           {currentIndex > 0 ? <ShortButton onTap={() => setCurrentIndex(currentIndex - 1)} type="outlined" >Back</ShortButton> : <View />}
           {currentIndex < (onboarding_details.length - 1) ? <ShortButton onTap={() => setCurrentIndex(currentIndex + 1)} type="fill" >Next</ShortButton> : <View />}

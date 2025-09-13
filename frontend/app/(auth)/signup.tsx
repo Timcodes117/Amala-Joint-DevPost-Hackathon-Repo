@@ -17,6 +17,7 @@ const SignupScreen = () => {
     return (
 
         <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: color_scheme.light }}
             behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <ScrollView
                 keyboardShouldPersistTaps="handled"
@@ -26,6 +27,7 @@ const SignupScreen = () => {
                     padding: 24,
                     justifyContent: "flex-start",
                     alignItems: "center",
+                    backgroundColor: color_scheme.light
                 }}>
                 <View style={{
                     display: "flex", flexDirection: "row", paddingTop: 20,
@@ -75,7 +77,7 @@ const SignupScreen = () => {
 
                     <Checkbox isChecked={isChecked} onChange={() => setIsChecked(!isChecked)}  />
 
-                    <WideButton onTap={() => { }}>Create Account</WideButton>
+                    <WideButton onTap={() => { } } type='fill' fillColor={color_scheme.button_color}>Create Account</WideButton>
                     <Text style={[global_style.text, { color: color_scheme.link_color, textAlign: "center" }]}>Already have an Account?</Text>
                     <TouchableOpacity style={global_style.centered} onPress={() => router.push("(auth)/login")}>
                         <Text style={[global_style.text, { color: color_scheme.dark, textAlign: "center", textDecorationLine: "underline" }]}>Log in</Text>

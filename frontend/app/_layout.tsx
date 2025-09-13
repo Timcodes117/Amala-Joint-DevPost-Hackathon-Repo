@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { font_name, font_name_bold } from "../utils/constants/app_constants";
 import AppContextProvider from "../contexts/app";
+import { AuthProvider } from "../contexts/auth";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,14 +42,16 @@ export default function RootLayout() {
   }
 
   return (
-    <AppContextProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
-          <Stack.Screen name="home_screen" />
-        ) : (
-          <Stack.Screen name="index" />
-        )}
-      </Stack>
-    </AppContextProvider>
+    <AuthProvider>
+      <AppContextProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          {isLoggedIn ? (
+            <Stack.Screen name="home_screen" />
+          ) : (
+            <Stack.Screen name="index" />
+          )}
+        </Stack>
+      </AppContextProvider>
+    </AuthProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, SafeAreaView, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native'
 import React from 'react'
 import Constants from 'expo-constants'
 import { color_scheme } from '../../utils/constants/app_constants'
@@ -10,12 +10,14 @@ import CircularInputField from '../../components/auth_screens/input_field'
 import { router } from 'expo-router'
 import Checkbox from '../../components/auth_screens/checkbox'
 import WideButton from '../../components/auth_screens/wideButton'
+import { useAuth } from '../../contexts/auth'
 
 const LoginPage = () => {
     const [isChecked, setIsChecked] = React.useState<boolean>(false);
+    const { signInWithGoogle, isLoading } = useAuth();
 
     return (
-        <KeyboardAvoidingView
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color_scheme.light }}
             behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <ScrollView
                 keyboardShouldPersistTaps="handled"
@@ -25,6 +27,7 @@ const LoginPage = () => {
                     padding: 24,
                     justifyContent: "flex-start",
                     alignItems: "center",
+                    backgroundColor: color_scheme.light
                 }}>
                 <View style={{
                     display: "flex", flexDirection: "row", paddingTop: 20,
@@ -39,9 +42,29 @@ const LoginPage = () => {
                     <Text style={onboarding_sheet.subtitle}>Login to access the sweetest Amala near you!</Text>
                 </View>
 
-                <TouchableOpacity style={[input_style.input_container, global_style.centered, { flexDirection: "row", gap: 10, alignItems: "center", borderRadius: 50, marginTop: 30, marginBottom: 30 }]}>
+                <TouchableOpacity 
+                    style={[
+                        input_style.input_container, 
+                        global_style.centered, 
+                        { 
+                            flexDirection: "row", 
+                            gap: 10, 
+                            alignItems: "center", 
+                            borderRadius: 50, 
+                            marginTop: 30, 
+                            marginBottom: 30,
+                            opacity: isLoading ? 0.7 : 1
+                        }
+                    ]}
+                    onPress={signInWithGoogle}
+                    disabled={isLoading}
+                >
                     <Image source={require("../../assets/images/google.png")} style={{ height: 24, width: 24 }} />
-                    <Text style={[onboarding_sheet.title, { fontSize: 14 }]}>Sign in with Google</Text>
+                    {isLoading ? (
+                        <ActivityIndicator size="small" color={color_scheme.dark} />
+                    ) : (
+                        <Text style={[onboarding_sheet.title, { fontSize: 14 }]}>Sign in with Google</Text>
+                    )}
                 </TouchableOpacity>
 
 
@@ -63,7 +86,7 @@ const LoginPage = () => {
 
                     <Checkbox isChecked={isChecked} onChange={() => setIsChecked(!isChecked)} />
 
-                    <WideButton onTap={() => router.push("home_screen/home")}>Login</WideButton>
+                    <WideButton onTap={() => router.push("home_screen/home")} type='fill' fillColor={color_scheme.button_color}>Login</WideButton>
                     <Text style={[global_style.text, { color: color_scheme.link_color, textAlign: "center" }]}>Don’t have an Account?</Text>
                     <TouchableOpacity style={global_style.centered} onPress={() => router.push("(auth)/signup")}>
                         <Text style={[global_style.text, { color: color_scheme.dark, textAlign: "center", textDecorationLine: "underline" }]}>Sign up</Text>

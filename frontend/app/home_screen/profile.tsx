@@ -6,9 +6,11 @@ import { color_scheme, font_name, font_name_bold } from '../../utils/constants/a
 import BackButton from '../../components/buttons/back_button'
 import { Bell, ChevronRight, Edit3, Star, MapPin, Minus, Globe, Sun, LogOut } from 'lucide-react-native'
 import { router } from 'expo-router'
+import { useAuth } from '../../contexts/auth'
 
 const Profile = () => {
   const [isLightMode, setIsLightMode] = useState(true)
+  const { user, signOut } = useAuth()
 
   const handleBackPress = () => {
     router.back()
@@ -23,7 +25,7 @@ const Profile = () => {
   }
 
   const handleLogoutPress = () => {
-    // Handle logout
+    signOut()
   }
 
   const handleRemoveSpot = (spotId: string) => {
@@ -73,7 +75,7 @@ const Profile = () => {
         {/* Profile Information */}
         <View style={{ alignItems: 'center', paddingVertical: 24 }}>
           <Image
-            source={require('../../assets/images/bot.png')}
+            source={user?.picture ? { uri: user.picture } : require('../../assets/images/bot.png')}
             style={{
               width: 120,
               height: 120,
@@ -84,13 +86,13 @@ const Profile = () => {
           
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <Text style={[global_style.text, { fontSize: 24, fontFamily: font_name_bold, marginRight: 8 }]}>
-              Adebogun Oluwasegun
+              {user?.name || 'User'}
             </Text>
             <Edit3 size={16} color={color_scheme.text_color} />
           </View>
           
           <Text style={[global_style.text, { fontSize: 16, color: color_scheme.placeholder_color, marginBottom: 16 }]}>
-            adesegun@gmail.com
+            {user?.email || 'user@example.com'}
           </Text>
           
           {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>

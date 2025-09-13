@@ -11,7 +11,7 @@ export const input_style = StyleSheet.create({
     input_container_fill: {
         width: "100%",
         height: 44,
-        backgroundColor: color_scheme.dark
+        backgroundColor: color_scheme.button_color
     },
 
     input_text: {

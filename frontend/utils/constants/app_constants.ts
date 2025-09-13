@@ -1,6 +1,6 @@
 
 export const color_scheme = {
-    button_color: "#1E1E1E",
+    button_color: "#D03535",
     link_color: "#666666",
     success_color: "#00DD4A",
     error_color: "#FF0000",
