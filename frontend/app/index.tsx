@@ -68,7 +68,7 @@ export default function App() {
         currentIndex < 2 ? <Image source={onboarding_details[currentIndex].image} resizeMode="cover"
           style={{ height: (height / 2) + 200, width: "100%", position: "absolute" }} />
           : <Image source={require("../assets/images/ob3.png")} resizeMode="contain"
-            style={{ height: 400, width: "100%" }} />
+            style={{ height: (height / 2) - 100, width: "100%" }} />
       }
 
 

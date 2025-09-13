@@ -12,10 +12,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, MoreVertical, Send } from 'lucide-react-native';
 import { color_scheme, font_name } from '../../utils/constants/app_constants';
+import { GEMINI_CONFIG } from '../../config/gemini';
+import BackButton from '../../components/buttons/back_button';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +33,11 @@ interface Message {
     text: string;
     action: string;
   }>;
+}
+
+interface BotResponse {
+  intent: string;
+  message: string;
 }
 
 const ChatScreen = () => {
@@ -51,75 +60,124 @@ const ChatScreen = () => {
     },
   ]);
   const [inputText, setInputText] = useState('');
+  const [conversationHistory, setConversationHistory] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleSendMessage = () => {
-    if (inputText.trim()) {
+  // Function to call Gemini API
+  const callGeminiAPI = async (userMessage: string): Promise<BotResponse> => {
+    try {
+      const systemInstruction = `You are a helpful assistant for Amala Joint app. Always respond in this exact JSON format: {"intent": "intent_keyword", "message": "your_response_message"}. 
+      
+      Conversation history: ${conversationHistory}
+      
+      User message: ${userMessage}`;
+
+      const response = await fetch(GEMINI_CONFIG.API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': GEMINI_CONFIG.API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: systemInstruction
+            }]
+          }]
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('Raw response:', responseText);
+
+      // Clean the response text by removing markdown code blocks
+      const cleanedText = responseText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+
+      console.log('Cleaned text:', cleanedText);
+
+      // Parse the JSON response
+      try {
+        const parsedResponse = JSON.parse(cleanedText);
+        console.log('Parsed response:', parsedResponse);
+        return {
+          intent: parsedResponse.intent || 'general',
+          message: parsedResponse.message || 'I apologize, but I had trouble processing your request.'
+        };
+      } catch (parseError) {
+        console.log('Parse error:', parseError);
+        // If JSON parsing fails, return the raw text
+        return {
+          intent: 'general',
+          message: responseText || 'I apologize, but I had trouble processing your request.'
+        };
+      }
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      return {
+        intent: 'error',
+        message: 'Sorry, I encountered an error. Please try again.'
+      };
+    }
+  };
+
+  // Function to update conversation history
+  const updateConversationHistory = (userMessage: string, botResponse: string) => {
+    const newEntry = `User: ${userMessage}\nBot: ${botResponse}\n\n`;
+    setConversationHistory(prev => prev + newEntry);
+  };
+
+  const handleSendMessage = async () => {
+    if (inputText.trim() && !isLoading) {
+      const userMessage = inputText.trim();
       const newMessage: Message = {
         id: Date.now().toString(),
-        text: inputText.trim(),
+        text: userMessage,
         isBot: false,
         timestamp: new Date(),
       };
       
       setMessages(prev => [...prev, newMessage]);
       setInputText('');
+      setIsLoading(true);
       
-      // Simulate bot response
-      setTimeout(() => {
-        handleBotResponse(inputText.trim());
-      }, 1000);
-    }
-  };
-
-  const handleBotResponse = (userMessage: string) => {
-    let botResponse = '';
-    let buttons: Array<{ id: string; text: string; action: string }> | undefined;
-
-    if (userMessage.toLowerCase().includes('yes') || userMessage.toLowerCase().includes("let's")) {
-      botResponse = "Perfect! Let's start with the basics. What's the name of this Amala spot?";
-    } else if (userMessage.toLowerCase().includes('iya moria')) {
-      botResponse = 'Great choice! "Iya Moria Spot" sounds like a nice place! 😊 Now, where can people find this spot? Please share the address or nearest landmark.';
-    } else if (userMessage.toLowerCase().includes('moria road') || userMessage.toLowerCase().includes('unilag')) {
-      botResponse = 'Got it! "13, moria road, UNILAG!" that\'s helpful for people to find it. 📍 Would you like me to help you add a precise location pin on the map?';
-      buttons = [
-        { id: 'btn3', text: 'Nah, no need', action: 'decline_map' },
-        { id: 'btn4', text: "Yes, let's do it!", action: 'accept_map' },
-      ];
-    } else if (userMessage.toLowerCase().includes('map pin')) {
-      botResponse = "Perfect! I've added a map pin for the location. 📌";
-      setTimeout(() => {
-        const pricingMessage: Message = {
-          id: Date.now().toString() + '1',
-          text: "Now, let's talk about pricing. How would you describe the price range at this spot?",
+      try {
+        // Call Gemini API
+        const botResponse = await callGeminiAPI(userMessage);
+        
+        // Update conversation history
+        updateConversationHistory(userMessage, botResponse.message);
+        
+        // Add bot response to messages
+        const botMessage: Message = {
+          id: Date.now().toString() + '_bot',
+          text: botResponse.message,
           isBot: true,
           timestamp: new Date(),
-          buttons: [
-            { id: 'btn5', text: 'N Budget friendly', action: 'budget' },
-            { id: 'btn6', text: 'NN Moderate', action: 'moderate' },
-            { id: 'btn7', text: 'NNN Premium', action: 'premium' },
-          ],
         };
-        setMessages(prev => [...prev, pricingMessage]);
-      }, 1000);
-    } else if (userMessage.toLowerCase().includes('budget')) {
-      botResponse = 'Noted! 💰 What are the opening hours? For example: "8:00 AM - 10:00 PM" or "24 hours"';
-    } else {
-      botResponse = "Thanks for that information! I'll help you add this spot to our database.";
+        
+        setMessages(prev => [...prev, botMessage]);
+      } catch (error) {
+        console.error('Error handling message:', error);
+        Alert.alert('Error', 'Failed to send message. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
-
-    const botMessage: Message = {
-      id: Date.now().toString(),
-      text: botResponse,
-      isBot: true,
-      timestamp: new Date(),
-      buttons,
-    };
-
-    setMessages(prev => [...prev, botMessage]);
   };
 
-  const handleButtonPress = (action: string, buttonText: string) => {
+
+  const handleButtonPress = async (action: string, buttonText: string) => {
+    if (isLoading) return;
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       text: buttonText,
@@ -128,10 +186,30 @@ const ChatScreen = () => {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
     
-    setTimeout(() => {
-      handleBotResponse(buttonText);
-    }, 1000);
+    try {
+      // Call Gemini API
+      const botResponse = await callGeminiAPI(buttonText);
+      
+      // Update conversation history
+      updateConversationHistory(buttonText, botResponse.message);
+      
+      // Add bot response to messages
+      const botMessage: Message = {
+        id: Date.now().toString() + '_bot',
+        text: botResponse.message,
+        isBot: true,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error handling button press:', error);
+      Alert.alert('Error', 'Failed to process button action. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -202,13 +280,13 @@ const ChatScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
+    <SafeAreaView style={[styles.container, {backgroundColor: color_scheme.light}]} edges={['top', 'left', 'right', 'bottom']}>
+      {/* <StatusBar barStyle="dark-content"  /> */}
       
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}>
-          <ChevronLeft size={24} color={color_scheme.text_color} />
+          <BackButton  onTap={()=> router.back()} />
         </TouchableOpacity>
         
         <View style={styles.headerInfo}>
@@ -251,11 +329,21 @@ const ChatScreen = () => {
             maxLength={500}
           />
           <TouchableOpacity
-            style={styles.sendButton}
+            style={[
+              styles.sendButton,
+              (!inputText.trim() || isLoading) && styles.sendButtonDisabled
+            ]}
             onPress={handleSendMessage}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || isLoading}
           >
-            <Send size={20} color={inputText.trim() ? color_scheme.light : color_scheme.placeholder_color} />
+            <Send 
+              size={20} 
+              color={
+                inputText.trim() && !isLoading 
+                  ? color_scheme.light 
+                  : color_scheme.placeholder_color
+              } 
+            />
           </TouchableOpacity>
     </View>
       </KeyboardAvoidingView>
@@ -276,7 +364,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: color_scheme.light,
     borderBottomWidth: 1,
     borderBottomColor: color_scheme.grey_bg,
   },
@@ -402,6 +490,9 @@ const styles = StyleSheet.create({
     backgroundColor: color_scheme.text_color,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: color_scheme.grey_bg,
   },
 });
 
