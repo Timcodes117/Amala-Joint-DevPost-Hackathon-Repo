@@ -3,6 +3,7 @@
     "name": "amav1",
     "slug": "amav1",
     "scheme": "amav1",
+    "owner": "timcodes", 
     "platforms": ["ios", "android"],
     "version": "1.0.0",
     "orientation": "portrait",

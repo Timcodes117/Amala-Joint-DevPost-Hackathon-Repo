@@ -27,12 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const redirectUri = AuthSession.makeRedirectUri();
+  console.log(redirectUri);
+
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: GOOGLE_CONFIG.CLIENT_ID,
-      redirectUri: AuthSession.makeRedirectUri({
-        useProxy: true,   // ✅ force Expo proxy
-      }),
+      redirectUri,      // 👈 use the proxy-based redirect
       scopes: GOOGLE_CONFIG.SCOPES,
     },
     GOOGLE_CONFIG.DISCOVERY
@@ -59,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
         .catch((error) => {
           console.error("Error fetching user info:", error);
+          setIsLoading(false);
         })
         .finally(() => {
           setIsLoading(false);
