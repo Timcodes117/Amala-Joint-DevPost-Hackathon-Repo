@@ -17,7 +17,8 @@ interface RoundedBtnProps {
 const RoundButton = ({ overrideStyle,...props}: RoundedBtnProps) => {
     return (
         <TouchableOpacity
-            style={[global_style.centered, input_style.input_container, { height: 40, width: 40, borderColor: color_scheme.outline, borderRadius: 100, ...overrideStyle }]} onPress={() => props.onTap}>
+            style={[global_style.centered, input_style.input_container, { height: 40, width: 40, borderColor: color_scheme.outline, borderRadius: 100, ...overrideStyle }]} 
+            onPress={() => props.onTap?.(props?.value)}>
             {props.children}
         </TouchableOpacity>
     )

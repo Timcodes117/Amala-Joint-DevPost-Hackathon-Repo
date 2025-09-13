@@ -1,13 +1,14 @@
-import { View, Text, Image } from 'react-native'
+import { View, Text, Image, TouchableOpacity } from 'react-native'
 import React from 'react'
 import { global_style } from '../../utils/stylesheets/general_style'
 import { color_scheme, font_name_bold } from '../../utils/constants/app_constants'
 import { MapPin, Star } from 'lucide-react-native'
 import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router'
 
 const StoreView = () => {
     return (
-        <View style={{ flexDirection: "column", gap: 5 }}>
+        <TouchableOpacity style={{ flexDirection: "column", gap: 5 }} onPress={() => router.push('/home_screen/details')}>
             <Image source={require("../../assets/images/ama2.jpg")}
                 style={{ width: "100%", height: 172, borderRadius: 8 }}
             />
@@ -31,7 +32,7 @@ const StoreView = () => {
                  <MaterialIcons name="directions-walk" size={16} color="black" />
                 <Text style={[global_style.text, { fontSize: 14 }]}>15 mins away</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     )
 }
 

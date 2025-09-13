@@ -15,7 +15,7 @@ interface BackBtnProps {
 const BackButton = (props: BackBtnProps) => {
     return (
         <TouchableOpacity
-            style={[global_style.centered, input_style.input_container,   { height: 48, width: 48, borderColor: color_scheme.outline, borderRadius: 100 }]} onPress={() => props.onTap(props.value)}>
+            style={[global_style.centered, input_style.input_container,   { height: 48, width: 48, borderColor: color_scheme.outline, borderRadius: 100, backgroundColor: color_scheme.light }]} onPress={() => props.onTap(props.value)}>
             <ChevronLeft size={24} color={color_scheme.text_color} />
         </TouchableOpacity>
     )

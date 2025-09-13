@@ -26,7 +26,7 @@ export default function RootLayout() {
     const checkAuth = async () => {
       // Replace with AsyncStorage / SecureStore check
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsLoggedIn(true); // 👈 set true if logged in
+      setIsLoggedIn(false); // 👈 set true if logged in
       setChecking(false);
     };
     checkAuth();
@@ -46,7 +46,7 @@ export default function RootLayout() {
         {isLoggedIn ? (
           <Stack.Screen name="home_screen" />
         ) : (
-          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="index" />
         )}
       </Stack>
     </AppContextProvider>

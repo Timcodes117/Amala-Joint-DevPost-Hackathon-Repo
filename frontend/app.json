@@ -16,9 +16,14 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.amav1.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528"
+      },
       "infoPlist": {}
     },
     "android": {
+      "package": "com.amav1.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -68,13 +73,6 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location so we can easily detect the shops near you."
-        }
-      ],
-      [
-        "expo-maps",
-        {
-          "googleMapsApiKey": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528",
-          "googleMapsApiKeyIos": "AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528"
         }
       ],
       "expo-asset"

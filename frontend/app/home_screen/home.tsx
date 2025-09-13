@@ -1,15 +1,18 @@
-import { View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, FlatList, SafeAreaView } from 'react-native'
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, FlatList, Image } from 'react-native'
 import React from 'react'
 import Constants from 'expo-constants'
 import { global_style } from '../../utils/stylesheets/general_style'
 import { color_scheme, font_name, font_name_bold } from '../../utils/constants/app_constants'
 import { input_style } from '../../utils/stylesheets/input_style'
-import { ChevronDown, FilterIcon, Grid2X2Plus, Locate, MapPin, MapPinned, Plus, Search, User } from 'lucide-react-native'
+import { ChevronDown, FilterIcon, Grid3X3, Locate, MapPin, MapPinned, Plus, Search, User, Settings, Sparkles, StoreIcon } from 'lucide-react-native'
 import RoundButton from '../../components/buttons/rounded_button'
 import WideButton from '../../components/auth_screens/wideButton'
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import StoreView from '../../components/home_screen/storeView'
+import SpeedDialFAB from '../../components/home_screen/FAB'
 import { useAppContext } from '../../contexts/app'
+import { router } from 'expo-router'
+import { SafeAreaView } from 'react-native-safe-area-context'
 // import { MotiView } from 'moti';
 
 // import MapViewClustering from "react-native-map-clustering";
@@ -17,36 +20,74 @@ import { useAppContext } from '../../contexts/app'
 
 const HomeScreen = () => {
   const markers = [
-    { id: 1, lat: 37.78825, lng: -122.4324 },
-    { id: 2, lat: 37.78925, lng: -122.4224 },
-    // ... hundreds more
+    { id: 1, lat: 6.5244, lng: 3.3792, title: "Lagos Central" },
+    { id: 2, lat: 6.5344, lng: 3.3892, title: "Victoria Island" },
+    { id: 3, lat: 6.5144, lng: 3.3692, title: "Ikeja" },
+    // ... more markers
   ];
 
-  const [active, setActive] = React.useState(false);
+  const { getCurrentLocation, getPlacesNearby, userLocation } = useAppContext();
 
-  const { getPlacesNearby, userLocation } = useAppContext();
+  // Speed dial actions
+  const speedDialActions = [
+    {
+      id: 'chat',
+      icon: (
+        <Image 
+          source={require('../../assets/images/bot.png')} 
+          style={{ width: 50, height: 50, borderRadius: 100 }} 
+          resizeMode="contain"
+        />
+      ),
+      onPress: () => router.push('/home_screen/chat'),
+      label: 'Chat with Bot',
+    },
+    {
+      id: 'settings',
+      icon: <Settings size={20} color={color_scheme.light} strokeWidth={2} />,
+      onPress: () => console.log('Settings pressed'),
+      label: 'Settings',
+    },
+    {
+      id: 'new_store',
+      icon: <StoreIcon size={20} color={color_scheme.light} strokeWidth={2} />,
+      onPress: () => router.push('/home_screen/new_post'),
+      label: 'Add New Store',
+    },
+  ];
 
   React.useEffect(() => {
-    getPlacesNearby(userLocation?.coords.longitude ?? 0, userLocation?.coords.latitude ?? 0)
+    const initializeLocation = async () => {
+      try {
+        await getCurrentLocation();
+        // Wait a bit for location to be set, then get places
+        setTimeout(() => {
+          getPlacesNearby(userLocation?.coords.longitude ?? 3.3792, userLocation?.coords.latitude ?? 6.5244);
+        }, 1000);
+      } catch (error) {
+        console.log('Location error:', error);
+        // Fallback to Lagos coordinates
+        getPlacesNearby(3.3792, 6.5244);
+      }
+    };
+    
+    initializeLocation();
   }, [])
 
   return (
     <SafeAreaView>
-      <TouchableOpacity style={global_style.fab} onPress={() => setActive(!active)}>
-
-      </TouchableOpacity>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           flexGrow: 1,
           paddingTop: Constants.statusBarHeight,
-          padding: 24,
+          paddingHorizontal: 24,
           justifyContent: "flex-start",
           backgroundColor: color_scheme.light
           // alignItems: "center",
         }}>
         <View style={{
-          display: "flex", flexDirection: "row", paddingTop: 20, alignItems: "center", gap: 20,
+          display: "flex", flexDirection: "row", paddingTop: 5, alignItems: "center", gap: 20,
           justifyContent: "space-between"
         }}>
 
@@ -57,11 +98,11 @@ const HomeScreen = () => {
           </View>
 
           <View style={{ flexDirection: "row", gap: 10 }}>
-            <RoundButton>
+            <RoundButton onTap={() => router.push('/home_screen/new_post')}>
               <Plus size={20} color={color_scheme.dark_outline} />
             </RoundButton>
 
-            <RoundButton>
+            <RoundButton onTap={() => router.push('/home_screen/profile')}>
               <User size={20} color={color_scheme.dark_outline} />
             </RoundButton>
           </View>
@@ -90,25 +131,21 @@ const HomeScreen = () => {
               style={{ width: "100%", height: 166, borderRadius: 12 }}
               provider={PROVIDER_GOOGLE}
               initialRegion={{
-                latitude: 37.78825,
-                longitude: -122.4324,
+                latitude: userLocation?.coords.latitude ?? 6.5244,
+                longitude: userLocation?.coords.longitude ?? 3.3792,
                 latitudeDelta: 0.0922,
                 longitudeDelta: 0.0421,
               }}
-              // region={{
-              //   latitude: userLocation?.coords.latitude ?? 0,
-              //   longitude: userLocation?.coords.longitude ?? 0,
-              //   latitudeDelta: 0.0922,
-              //   longitudeDelta: 0.0421,
-              // }}
+              showsUserLocation={true}
+              showsMyLocationButton={false}
             >
-              {/* {markers.map((m) => (
-              <Marker
-                key={m.id}
-                coordinate={{ latitude: m.lat, longitude: m.lng }}
-                title={`Marker ${m.id}`}
-              />
-            ))} */}
+              {markers.map((m) => (
+                <Marker
+                  key={m.id}
+                  coordinate={{ latitude: m.lat, longitude: m.lng }}
+                  title={m.title}
+                />
+              ))}
             </MapView>
           </View>
         </View>
@@ -130,6 +167,15 @@ const HomeScreen = () => {
           <StoreView />
         </View>
       </ScrollView>
+      
+      {/* Speed Dial Floating Action Button */}
+      <SpeedDialFAB 
+        actions={speedDialActions}
+        mainIcon={<Plus size={24} color={color_scheme.light} strokeWidth={2.5} />}
+        size="medium"
+        mainColor={color_scheme.button_color}
+        secondaryColor={color_scheme.dark}
+      />
     </SafeAreaView>
   )
 }
