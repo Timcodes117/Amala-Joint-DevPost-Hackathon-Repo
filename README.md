@@ -7,12 +7,13 @@ Word of mouth and scattered online reviews often fall short, leaving hidden gems
 </p>
 
 # Live url:
-<a href="https://your-live-demo-link.com">View live demo</a>
+<a href="https://appetize.io/app/b_5rnla2qbgrswravifqqbwyek5y">View live demo</a>
 <br/>
 
-# Download APK
-<a href="https://your-apk-link.com">Download here</a>
+# Download APK File
+<a href="https://expo.dev/accounts/timcodes/projects/amav1/builds/9d48849a-71f6-42c5-9830-24e61624ad05">Download here</a>
 <br/>
+![Amala Joint App Download](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend/assets/images/apk%20walkthrough.PNG?raw=true "Amala Joint app download")
 
 # Usage
 - Download on Android device
