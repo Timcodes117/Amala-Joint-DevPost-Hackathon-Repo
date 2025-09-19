@@ -19,3 +19,6 @@ def list_users():
 
 
 @users_bp.get('/get_current_address')
+@jwt_required()
+def get_address():
+    return jsonify({'success': True, 'data': []}), 200

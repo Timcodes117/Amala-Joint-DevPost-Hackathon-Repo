@@ -4,17 +4,17 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-pymongo = "*"
-python-dotenv = "*"
-flask-cors = "*"
 marshmallow = "*"
 bcrypt = "*"
 email-validator = "*"
-flask-jwt-extended = "*"
 gunicorn = "*"
 google-adk = "*"
 google-generativeai = "*"
+flask = ">=3.0.0"
+flask-cors = "*"
+flask-jwt-extended = "*"
+pymongo = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

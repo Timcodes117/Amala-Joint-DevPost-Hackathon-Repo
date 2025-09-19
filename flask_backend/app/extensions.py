@@ -16,7 +16,8 @@ class MongoClientWrapper:
     def init_app(self, app):
         uri = app.config['MONGO_URI']
         db_name = app.config['MONGO_DB_NAME']
-        self.client = MongoClient(uri)
+        # Add SSL configuration for MongoDB Atlas
+        self.client = MongoClient(uri, ssl=True, tlsAllowInvalidCertificates=False)
         self.db = self.client[db_name]
 
     def get_db(self):

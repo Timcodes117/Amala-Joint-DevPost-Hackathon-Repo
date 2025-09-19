@@ -7,7 +7,8 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
-    MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://timcodes_db:JsU6n3PLFfFLmTwY@amalacluster.otvkknh.mongodb.net/?retryWrites=true&w=majority&appName=amalaCluster')
-    MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'amala')
+    MONGO_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+    MONGO_DB_NAME = os.getenv('DATABASE_NAME', 'amala_app')
+    GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 
