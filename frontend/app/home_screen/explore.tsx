@@ -4,16 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import BackButton from '../../components/buttons/back_button'
 import RoundButton from '../../components/buttons/rounded_button'
-import FilterModal, { FilterModalRef } from '../../components/home_screen/FilterModal'
+import FilterBottomSheet, { FilterBottomSheetRef } from '../../components/home_screen/FilterBottomSheet'
 import { router } from 'expo-router'
 import { useAppContext } from '../../contexts/app'
-import { MapPin, Clock, Star, FilterIcon, Search } from 'lucide-react-native'
+import { MapPin, Clock, Star, FilterIcon, Search, Locate } from 'lucide-react-native'
 import { color_scheme, font_name, font_name_bold } from '../../utils/constants/app_constants'
 import { global_style } from '../../utils/stylesheets/general_style'
 
 const Explore = () => {
-  const { userLocation, googlePlacesApi } = useAppContext()
-  const filterModalRef = React.useRef<FilterModalRef>(null);
+  const { userLocation, googlePlacesApi, getCurrentLocation } = useAppContext()
+  const filterBottomSheetRef = React.useRef<FilterBottomSheetRef>(null);
   const { width } = Dimensions.get('window')
   const [currentIndex, setCurrentIndex] = React.useState(0)
   const [mapRegion, setMapRegion] = React.useState({
@@ -200,10 +200,10 @@ const Explore = () => {
             <Text style={[global_style.text, { color: color_scheme.placeholder_color, fontSize: 14 }]} numberOfLines={1}>Search</Text>
           </TouchableOpacity>
           <RoundButton 
-            onTap={() => filterModalRef.current?.present()} 
+            onTap={() => getCurrentLocation()} 
             overrideStyle={{ borderWidth: 0, backgroundColor: color_scheme.borderless, padding: 12, height: 48, width: 48 }}
           >
-            <FilterIcon size={18} color={color_scheme.placeholder_color} />
+            <Locate size={18} color={color_scheme.placeholder_color} />
           </RoundButton>
         </View>
       </View>
@@ -265,8 +265,8 @@ const Explore = () => {
       </View>
 
       {/* Filter Modal */}
-      <FilterModal
-        ref={filterModalRef}
+      <FilterBottomSheet
+        ref={filterBottomSheetRef}
         onApplyFilters={handleApplyFilters}
       />
     </SafeAreaView>

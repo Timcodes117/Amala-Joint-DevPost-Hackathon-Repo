@@ -7,13 +7,27 @@ import { global_style } from '../../utils/stylesheets/general_style'
 import BackButton from '../../components/buttons/back_button'
 import { router, useLocalSearchParams } from 'expo-router'
 import { PlaceResult } from '../../utils/types/places_api_types'
-import { MapPin, Star } from 'lucide-react-native'
+import { MapPin, Star, Heart } from 'lucide-react-native'
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps'
+import { useSavedPosts } from '../../contexts/savedPosts'
 
 const Details = () => {
   const { width, height } = Dimensions.get('window')
   const { data } = useLocalSearchParams();
   const itemData: PlaceResult = data ? JSON.parse(data as string) : null;
+  const { savePost, unsavePost, isPostSaved } = useSavedPosts();
+  
+  const isSaved = itemData ? isPostSaved(itemData.place_id) : false;
+
+  const handleSavePost = async () => {
+    if (!itemData) return;
+    
+    if (isSaved) {
+      await unsavePost(itemData.place_id);
+    } else {
+      await savePost(itemData);
+    }
+  };
   return (
     <SafeAreaView>
       <View style={{ padding: 24, position: 'absolute', top: 30, left: 0, right: 0, zIndex: 1000 }}>
@@ -170,18 +184,26 @@ const Details = () => {
 
            <TouchableOpacity 
             style={{
-              backgroundColor: '#FF4444',
+              backgroundColor: isSaved ? color_scheme.success_color : '#FF4444',
               borderRadius: 100,
               paddingVertical: 12,
               alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
             }}
-            
+            onPress={handleSavePost}
           >
+            <Heart 
+              size={16} 
+              color="white" 
+              fill={isSaved ? "white" : "transparent"}
+            />
             <Text style={{
                 color: 'white',
                 fontSize: 16,
                fontFamily: font_name_bold,
-             }}>Save Post</Text>
+             }}>{isSaved ? 'Saved' : 'Save Post'}</Text>
           </TouchableOpacity>
 
             </View>

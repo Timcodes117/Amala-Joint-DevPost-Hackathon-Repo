@@ -7,10 +7,12 @@ import BackButton from '../../components/buttons/back_button'
 import { Bell, ChevronRight, Edit3, Star, MapPin, Minus, Globe, Sun, LogOut } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { useAuth } from '../../contexts/auth'
+import { useSavedPosts } from '../../contexts/savedPosts'
 
 const Profile = () => {
   const [isLightMode, setIsLightMode] = useState(true)
   const { user, signOut } = useAuth()
+  const { savedPosts, unsavePost } = useSavedPosts()
 
   const handleBackPress = () => {
     router.back()
@@ -28,8 +30,19 @@ const Profile = () => {
     signOut()
   }
 
-  const handleRemoveSpot = (spotId: string) => {
-    // Handle removing saved spot
+  const handleRemoveSpot = async (placeId: string) => {
+    await unsavePost(placeId);
+  }
+
+  const handleSeeAllPress = () => {
+    router.push('/home_screen/saved_posts');
+  }
+
+  const handleSpotPress = (place: any) => {
+    router.push({
+      pathname: '/home_screen/details',
+      params: { data: JSON.stringify(place) }
+    });
   }
 
   return (
@@ -44,7 +57,7 @@ const Profile = () => {
         backgroundColor: color_scheme.light
       }}>
         <BackButton onTap={handleBackPress} />
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={{
             width: 48,
             height: 48,
@@ -68,14 +81,14 @@ const Profile = () => {
             borderRadius: 4,
             backgroundColor: color_scheme.error_color
           }} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         {/* Profile Information */}
         <View style={{ alignItems: 'center', paddingVertical: 24 }}>
           <Image
-            source={user?.picture ? { uri: user.picture } : require('../../assets/images/bot.png')}
+            source={require('../../assets/images/bot.png')}
             style={{
               width: 120,
               height: 120,
@@ -129,7 +142,7 @@ const Profile = () => {
             <Text style={[global_style.text, { fontSize: 20, fontWeight: 'bold' }]}>
               Saved spots
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleSeeAllPress}>
               <Text style={[global_style.text, { fontSize: 16, color: color_scheme.link_color }]}>
                 See all
               </Text>
@@ -137,52 +150,86 @@ const Profile = () => {
           </View>
 
           {/* Saved Spot Cards */}
-          {[1, 2].map((item) => (
-            <View key={item} style={{
-              flexDirection: 'row',
+          {savedPosts.length > 0 ? (
+            savedPosts.slice(0, 2).map((place) => (
+              <TouchableOpacity 
+                key={place.place_id} 
+                style={{
+                  flexDirection: 'row',
+                  backgroundColor: color_scheme.light,
+                  borderRadius: 12,
+                  padding: 12,
+                  marginBottom: 12,
+                  borderWidth: 1,
+                  borderColor: color_scheme.outline,
+                  alignItems: 'center'
+                }}
+                onPress={() => handleSpotPress(place)}
+              >
+                <Image
+                  source={{ 
+                    uri: place.photos 
+                      ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528`
+                      : 'https://via.placeholder.com/80x80/FFD700/FFFFFF?text=Restaurant'
+                  }}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 8,
+                    marginRight: 12
+                  }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[global_style.text, { fontSize: 16, fontFamily: font_name_bold, marginBottom: 4 }]}>
+                    {place.name}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <MapPin size={14} color={color_scheme.placeholder_color} />
+                    <Text style={[global_style.text, { fontSize: 14, color: color_scheme.placeholder_color, marginLeft: 4 }]}>
+                      {place.vicinity || 'Location not available'}
+                    </Text>
+                  </View>
+                  {place.rating && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <Star size={12} color={color_scheme.placeholder_color} />
+                      <Text style={[global_style.text, { fontSize: 12, color: color_scheme.placeholder_color, marginLeft: 4 }]}>
+                        {place.rating} ({place.user_ratings_total || 0})
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    backgroundColor: color_scheme.grey_bg,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                  onPress={() => handleRemoveSpot(place.place_id)}
+                >
+                  <Minus size={16} color={color_scheme.text_color} />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={{
               backgroundColor: color_scheme.light,
               borderRadius: 12,
-              padding: 12,
-              marginBottom: 12,
+              padding: 24,
               borderWidth: 1,
               borderColor: color_scheme.outline,
               alignItems: 'center'
             }}>
-              <Image
-                source={{ uri: 'https://via.placeholder.com/80x80/FFD700/FFFFFF?text=Restaurant' }}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 8,
-                  marginRight: 12
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={[global_style.text, { fontSize: 16, fontFamily: font_name_bold, marginBottom: 4 }]}>
-                  Mama Kemi's Kitchen
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <MapPin size={14} color={color_scheme.placeholder_color} />
-                  <Text style={[global_style.text, { fontSize: 14, color: color_scheme.placeholder_color, marginLeft: 4 }]}>
-                    15 Allen Avenue, Ikeja
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: color_scheme.grey_bg,
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-                onPress={() => handleRemoveSpot(item.toString())}
-              >
-                <Minus size={16} color={color_scheme.text_color} />
-              </TouchableOpacity>
+              <Text style={[global_style.text, { fontSize: 16, color: color_scheme.placeholder_color, textAlign: 'center' }]}>
+                No saved spots yet
+              </Text>
+              <Text style={[global_style.text, { fontSize: 14, color: color_scheme.placeholder_color, textAlign: 'center', marginTop: 4 }]}>
+                Save your favorite restaurants to see them here
+              </Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Settings Section */}

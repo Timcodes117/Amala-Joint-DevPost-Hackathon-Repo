@@ -13,6 +13,8 @@ bcrypt = "*"
 email-validator = "*"
 flask-jwt-extended = "*"
 gunicorn = "*"
+google-adk = "*"
+google-generativeai = "*"
 
 [dev-packages]
 

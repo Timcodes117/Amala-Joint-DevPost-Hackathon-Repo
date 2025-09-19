@@ -29,13 +29,13 @@ const StoreView = ({ item_data }: { item_data: PlaceResult }) => {
                 </View>
                 <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
                     <Star size={16} color={color_scheme.placeholder_color} />
-                    <Text style={[global_style.text, { fontSize: 14, color: color_scheme.placeholder_color }]}>4.9</Text>
+                    <Text style={[global_style.text, { fontSize: 14, color: color_scheme.placeholder_color }]}>{item_data.rating}</Text>
                 </View>
             </View>
 
             <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
                 <MaterialIcons name="directions-walk" size={16} color="black" />
-                <Text style={[global_style.text, { fontSize: 14 }]}>15 mins away</Text>
+                <Text style={[global_style.text, { fontSize: 14 }]}>{item_data.types[0]}</Text>
             </View>
         </TouchableOpacity>
     )

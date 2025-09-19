@@ -5,7 +5,8 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-const API_BASE_URL = "";
+// Flask backend server URL - change this to your actual server URL
+const API_BASE_URL = "https://amalahack.pythonanywhere.com";
 
 export const axiosPost = async (
   endpoint: string,
@@ -31,7 +32,7 @@ export const axiosGet = async (
   endpoint: string,
   additionalHeaders?: AxiosRequestHeaders
 ) => {
-  return axios.get(`${API_BASE_URL}${endpoint}`, {
+  return axios.get(`${endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`}`, {
     headers: { ...headers, ...additionalHeaders },
   });
 };

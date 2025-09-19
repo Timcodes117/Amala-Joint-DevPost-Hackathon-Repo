@@ -10,17 +10,18 @@ import WideButton from '../../components/auth_screens/wideButton'
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 import StoreView from '../../components/home_screen/storeView'
 import SpeedDialFAB from '../../components/home_screen/FAB'
-import FilterModal, { FilterModalRef } from '../../components/home_screen/FilterModal'
+import FilterBottomSheet, { FilterBottomSheetRef } from '../../components/home_screen/FilterBottomSheet'
 import { useAppContext } from '../../contexts/app'
 import { router } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useAuth } from '../../contexts/auth'
 // import { MotiView } from 'moti';
 
 // import MapViewClustering from "react-native-map-clustering";
 // import { Map } from 'react-native-maps'
 
 const HomeScreen = () => {
-  const filterModalRef = React.useRef<FilterModalRef>(null);
+  const filterBottomSheetRef = React.useRef<FilterBottomSheetRef>(null);
   
   const markers = [
     { id: 1, lat: 6.5244, lng: 3.3792, title: "Lagos Central" },
@@ -30,7 +31,7 @@ const HomeScreen = () => {
   ];
 
   const { getCurrentLocation, getPlacesNearby, userLocation, getAddressFromCoords, UserAddress, googlePlacesApi } = useAppContext();
-
+  const { user } = useAuth();
   // Speed dial actions
   const speedDialActions = [
     {
@@ -65,21 +66,40 @@ const HomeScreen = () => {
     // For example, filter the googlePlacesApi results based on the selected filters
   };
 
+  const handleFilterPress = () => {
+    console.log('Filter button pressed');
+    filterBottomSheetRef.current?.present();
+  };
+
   React.useEffect(() => {
     const initializeLocation = async () => {
       try {
         const loc = await getCurrentLocation();
-        await Promise.all([
-          getPlacesNearby(loc?.coords.longitude ?? 3.3792, loc?.coords.latitude ?? 6.5244),
-          getAddressFromCoords(loc?.coords.latitude ?? 3.3792, loc?.coords.longitude ?? 6.5244)
-        ]);
-        // Wait a bit for location to be set, then get places
-        setTimeout(() => {
-        }, 1000);
+        console.log('Current location:', loc);
+        
+        if (loc?.coords) {
+          const { latitude, longitude } = loc.coords;
+          console.log('Using user location:', { latitude, longitude });
+          
+          await Promise.all([
+            getPlacesNearby(longitude, latitude),
+            getAddressFromCoords(latitude, longitude)
+          ]);
+        } else {
+          console.log('No location found, using fallback coordinates');
+          // Fallback to Lagos coordinates
+          await Promise.all([
+            getPlacesNearby(3.3792, 6.5244),
+            getAddressFromCoords(6.5244, 3.3792)
+          ]);
+        }
       } catch (error) {
         console.log('Location error:', error);
         // Fallback to Lagos coordinates
-        getPlacesNearby(3.3792, 6.5244);
+        await Promise.all([
+          getPlacesNearby(3.3792, 6.5244),
+          getAddressFromCoords(6.5244, 3.3792)
+        ]);
       }
     };
 
@@ -122,8 +142,8 @@ const HomeScreen = () => {
         </View>
 
         <View style={{ flexDirection: "column", marginTop: 10, marginBottom: 10 }}>
-          <Text style={[global_style.text, { fontFamily: font_name_bold, fontSize: 20 }]}>Hello Tim,</Text>
-          <Text style={[global_style.text, { fontFamily: font_name_bold, fontSize: 18 }]}>There are 3 stores near you!</Text>
+          <Text style={[global_style.text, { fontFamily: font_name_bold, fontSize: 20 }]}>Hello {user?.name.split(' ')[0]},</Text>
+          <Text style={[global_style.text, { fontFamily: font_name_bold, fontSize: 18 }]}>There are {googlePlacesApi?.results.length} stores near you!</Text>
         </View>
 
         <View style={{ flexDirection: "row", gap: 10, width: "100%", }}>
@@ -132,7 +152,7 @@ const HomeScreen = () => {
             <Search size={20} color={color_scheme.placeholder_color} />
             <Text style={[global_style.text, { color: color_scheme.placeholder_color, flexWrap: "wrap", width: "70%" }]} numberOfLines={1}>Search for stores and dishes near you</Text>
           </TouchableOpacity>
-          <RoundButton onTap={() => filterModalRef.current?.present()} overrideStyle={{ borderWidth: 0, backgroundColor: color_scheme.borderless, padding: 10, height: 48, minWidth: 48 }}>
+          <RoundButton onTap={handleFilterPress} overrideStyle={{ borderWidth: 0, backgroundColor: color_scheme.borderless, padding: 10, height: 48, minWidth: 48 }}>
             <FilterIcon size={20} color={color_scheme.placeholder_color} />
           </RoundButton>
         </View>
@@ -200,9 +220,9 @@ const HomeScreen = () => {
         secondaryColor={color_scheme.dark}
       />
 
-      {/* Filter Modal */}
-      <FilterModal
-        ref={filterModalRef}
+      {/* Filter Bottom Sheet */}
+      <FilterBottomSheet
+        ref={filterBottomSheetRef}
         onApplyFilters={handleApplyFilters}
       />
     </SafeAreaView>

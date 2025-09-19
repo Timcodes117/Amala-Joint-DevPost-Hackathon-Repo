@@ -26,39 +26,71 @@ const AppContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [UserAddress, setUserAddress] = React.useState<GeocodeResponse>()
 
     async function getCurrentLocation(): Promise<Location.LocationObject | null> {
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            console.log('Location permission status:', status);
+            
+            if (status !== 'granted') {
+                setLocationErrorMsg('Permission to access location was denied');
+                console.log('Location permission denied');
+                return null;
+            }
 
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-            setLocationErrorMsg('Permission to access location was denied');
+            console.log('Getting current position...');
+            let location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+            });
+            
+            console.log('Location obtained:', location);
+            setuserLocation(location);
+            return location;
+        } catch (error) {
+            console.error('Error getting location:', error);
+            setLocationErrorMsg('Failed to get current location');
             return null;
         }
-
-        let location = await Location.getCurrentPositionAsync({});
-        setuserLocation(location);
-        return location;
     }
 
     async function getPlacesNearby(long: number, lat: number) {
         try {
+            console.log('Getting places nearby for coordinates:', { lat, long });
             const request = await axiosGet(
                 `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${long}&radius=2000&keyword=amala&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528`
             );
-            // console.log(request.data); // log only the results
+            console.log('Places API response:', request.data);
             setGooglePlacesApi(request.data);
         } catch (error) {
             console.error("Error fetching places:", error);
+            // Set empty results on error
+            setGooglePlacesApi({
+                html_attributions: [],
+                results: [],
+                status: "ERROR"
+            });
         }
     }
 
     async function getAddressFromCoords(lat: number, lng: number) {
-        const request = await axiosGet(
-            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528`
-        );
-
-        console.log(request)
-        setUserAddress(request.data as GeocodeResponse)
-
-        // return request.data;
+        try {
+            console.log('Getting address for coordinates:', { lat, lng });
+            const request = await axiosGet(
+                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528`
+            );
+            console.log('Geocode response:', request.data);
+            setUserAddress(request.data as GeocodeResponse);
+        } catch (error) {
+            console.error('Error getting address:', error);
+            // Set fallback address
+            setUserAddress({
+                results: [{
+                    formatted_address: 'Lagos, Nigeria',
+                    address_components: [],
+                    geometry: { location: { lat, lng } },
+                    place_id: 'fallback'
+                }],
+                status: 'OK'
+            });
+        }
     }
 
 

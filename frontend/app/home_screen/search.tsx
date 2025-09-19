@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Search, FilterIcon, MapPin } from 'lucide-react-native'
 import RoundButton from '../../components/buttons/rounded_button'
-import FilterModal, { FilterModalRef } from '../../components/home_screen/FilterModal'
+import FilterBottomSheet, { FilterBottomSheetRef } from '../../components/home_screen/FilterBottomSheet'
 import { color_scheme } from '../../utils/constants/app_constants'
 import { global_style } from '../../utils/stylesheets/general_style'
 import Constants from 'expo-constants'
@@ -13,7 +13,7 @@ import { useAppContext } from '../../contexts/app'
 
 const SearchSceen = () => {
     const { googlePlacesApi } = useAppContext();
-    const filterModalRef = React.useRef<FilterModalRef>(null);
+    const filterBottomSheetRef = React.useRef<FilterBottomSheetRef>(null);
 
     const [searchInput, setSearchInput] = React.useState<string>("")
 
@@ -57,7 +57,7 @@ const SearchSceen = () => {
                     />
                 </TouchableOpacity>
                 <RoundButton 
-                    onTap={() => filterModalRef.current?.present()} 
+                    onTap={() => filterBottomSheetRef.current?.present()} 
                     overrideStyle={{ borderWidth: 0, backgroundColor: color_scheme.borderless, padding: 10, height: 48, minWidth: 48 }}
                 >
                     <FilterIcon size={20} color={color_scheme.placeholder_color} />
@@ -95,9 +95,9 @@ const SearchSceen = () => {
             />
 
             {/* Filter Modal */}
-            <FilterModal
-                ref={filterModalRef}
-                onApplyFilters={handleApplyFilters}
+            <FilterBottomSheet
+              ref={filterBottomSheetRef}
+              onApplyFilters={handleApplyFilters}
             />
 
         </SafeAreaView>

@@ -4,36 +4,17 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { font_name, font_name_bold } from "../utils/constants/app_constants";
 import AppContextProvider from "../contexts/app";
-import { AuthProvider } from "../contexts/auth";
+import { AuthProvider, useAuth } from "../contexts/auth";
+import { SavedPostsProvider } from "../contexts/savedPosts";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    [font_name]: require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
-    [font_name_bold]: require("../assets/fonts/PlusJakartaSans-Bold.ttf"),
-  });
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // 👈 control auth state
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded, error]);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      // Replace with AsyncStorage / SecureStore check
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setIsLoggedIn(false); // 👈 set true if logged in
-      setChecking(false);
-    };
-    checkAuth();
-  }, []);
-
-  if (!loaded || checking) {
+// Inner component that uses auth context
+function RootLayoutContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" />
@@ -42,16 +23,45 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <AppContextProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          {isLoggedIn ? (
-            <Stack.Screen name="home_screen" />
-          ) : (
-            <Stack.Screen name="index" />
-          )}
-        </Stack>
-      </AppContextProvider>
-    </AuthProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      {isAuthenticated ? (
+        <Stack.Screen name="home_screen" />
+      ) : (
+        <Stack.Screen name="index" />
+      )}
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  const [loaded, error] = useFonts({
+    [font_name]: require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
+    [font_name_bold]: require("../assets/fonts/PlusJakartaSans-Bold.ttf"),
+  });
+
+  useEffect(() => {
+    if (loaded || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded, error]);
+
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <AppContextProvider>
+          <SavedPostsProvider>
+            <RootLayoutContent />
+          </SavedPostsProvider>
+        </AppContextProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,5 +1,5 @@
-import { View, Text, SafeAreaView, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native'
-import React from 'react'
+import { View, Text, SafeAreaView, TouchableOpacity, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native'
+import React, { useState } from 'react'
 import Constants from 'expo-constants'
 import { color_scheme } from '../../utils/constants/app_constants'
 import BackButton from '../../components/buttons/back_button'
@@ -13,8 +13,31 @@ import WideButton from '../../components/auth_screens/wideButton'
 import { useAuth } from '../../contexts/auth'
 
 const LoginPage = () => {
-    const [isChecked, setIsChecked] = React.useState<boolean>(false);
-    const { signInWithGoogle, isLoading } = useAuth();
+    const [isChecked, setIsChecked] = useState<boolean>(false);
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const { signInWithGoogle, signInWithEmail, isLoading } = useAuth();
+
+    const handleEmailLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        if (!isChecked) {
+            Alert.alert('Error', 'Please accept the terms and conditions');
+            return;
+        }
+
+        setIsSubmitting(true);
+        const result = await signInWithEmail({ email, password });
+        setIsSubmitting(false);
+
+        if (!result.success) {
+            Alert.alert('Login Failed', result.error || 'Please try again');
+        }
+    };
 
     return (
         <KeyboardAvoidingView style={{ flex: 1, backgroundColor: color_scheme.light }}
@@ -77,16 +100,35 @@ const LoginPage = () => {
                 <View style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%" }}>
                     <View style={{ width: "100%", flexDirection: "column", gap: 10, }}>
                         <Text style={global_style.text}>Email Address</Text>
-                        <CircularInputField placeHolder='Enter your Email Address' type='email' />
+                        <CircularInputField 
+                            placeHolder='Enter your Email Address' 
+                            type='email' 
+                            value={email}
+                            onChange={setEmail}
+                        />
                     </View>
                     <View style={{ width: "100%", flexDirection: "column", gap: 10, }}>
                         <Text style={global_style.text}>Password</Text>
-                        <CircularInputField placeHolder='Enter your Password' type='text' />
+                        <CircularInputField 
+                            placeHolder='Enter your Password' 
+                            type='password' 
+                            value={password}
+                            onChange={setPassword}
+                            showPasswordToggle={true}
+                        />
                     </View>
 
                     <Checkbox isChecked={isChecked} onChange={() => setIsChecked(!isChecked)} />
 
-                    <WideButton onTap={() => router.push("home_screen/home")} type='fill' fillColor={color_scheme.button_color}>Login</WideButton>
+                    <WideButton 
+                        onTap={handleEmailLogin} 
+                        type='fill' 
+                        fillColor={color_scheme.button_color}
+                        disabled={isSubmitting || isLoading}
+                        loading={isSubmitting}
+                    >
+                        {isSubmitting ? 'Logging in...' : 'Login'}
+                    </WideButton>
                     <Text style={[global_style.text, { color: color_scheme.link_color, textAlign: "center" }]}>Don’t have an Account?</Text>
                     <TouchableOpacity style={global_style.centered} onPress={() => router.push("(auth)/signup")}>
                         <Text style={[global_style.text, { color: color_scheme.dark, textAlign: "center", textDecorationLine: "underline" }]}>Sign up</Text>
