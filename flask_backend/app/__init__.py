@@ -1,5 +1,9 @@
 from flask import Flask
 from dotenv import load_dotenv
+
+# Load environment variables BEFORE importing anything that uses them
+load_dotenv('config.env')
+
 from .config import Config
 from .extensions import cors, jwt, mongo_client, init_mongo_indexes
 from .routes.auth import auth_bp
@@ -7,8 +11,8 @@ from .routes.users import users_bp
 from .routes.health import health_bp
 
 
+
 def create_app(config_class: type[Config] = Config) -> Flask:
-    load_dotenv()
     app = Flask(__name__)
     app.config.from_object(config_class)
 

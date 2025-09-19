@@ -1,32 +1,33 @@
 import requests
+import app.config as config
 
 class LocationService:
-    def __init__(self, latitude: str, longitude: str, token: str, radius: int):
-        self.latitude = latitude
-        self.longitude = longitude
+    def __init__(self,  token: str, radius: int):
         self.token = token
         self.radius = radius
 
-    def get_current_address(self) -> dict:
+        print(token, radius, sep=" | ")
+
+    def get_current_address(self, latitude: str, longitude: str) -> dict:
         """
         Get the user's current location formatted address from latitude/longitude
         using Google Geocoding API.
         """
         response = requests.get(
             f"https://maps.googleapis.com/maps/api/geocode/json"
-            f"?latlng={self.latitude},{self.longitude}&key={self.token}"
+            f"?latlng={latitude},{longitude}&key={self.token}"
         )
         data = response.json()
         print(data)
         return data
 
-    def get_nearby_places(self) -> dict:
+    def get_nearby_places(self, latitude: str, longitude: str) -> dict:
         """
         Get places near the current user location using Google Places API.
         """
         response = requests.get(
             f"https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-            f"?location={self.latitude},{self.longitude}&radius={self.radius}&keyword=amala&key={self.token}"
+            f"?location={latitude},{longitude}&radius={self.radius}&keyword=amala&key={self.token}"
         )
         data = response.json()
         print(data)
@@ -45,4 +46,4 @@ class LocationService:
         return data
 
 
-lc = LocationService()
+# lc = 
