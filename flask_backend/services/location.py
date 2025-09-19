@@ -43,3 +43,6 @@ class LocationService:
         data = response.json()
         print(data)
         return data
+
+
+lc = LocationService()
