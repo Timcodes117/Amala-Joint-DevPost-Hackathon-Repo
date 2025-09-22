@@ -5,7 +5,7 @@ import { type SearchResult } from '@/components/search-popover'
 import SearchBar from '@/components/search-bar'
 import React, { useMemo } from 'react'
 
-function page() {
+function Page() {
   const DUMMY: SearchResult[] = useMemo(
     () =>
       new Array(8).fill(0).map((_, i) => ({
@@ -39,7 +39,7 @@ function page() {
 
        </div>
        <br />
-          <hr className='border-gray-800' />
+          <hr className='border border_1' />
        <br />
       <div className='w-full h-full flex-grow flex flex-col overflow-y-scroll csb gap-4'>
         {new Array(5).fill("test").map((_, index) => (
@@ -63,4 +63,4 @@ function page() {
   )
 }
 
-export default page
+export default Page

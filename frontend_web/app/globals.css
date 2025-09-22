@@ -3,11 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #1A1A1A;
-  --b2: #ffffffd3;
+  /* Neutral surface tokens for light mode */
+  --b2: #f5f5f5;
   --b2-color: #1A1A1A;
-  --b3: #ffffffd3;
+  --b3: #eeeeee;
   --b3-color: #2D2D2D;
   --grey-btn: #433C3C;
+  /* Border and muted text */
+  --border: #e5e7eb; /* gray-200 */
+  --muted: #6b7280;  /* gray-500 */
 }
 
 @theme inline {
@@ -31,6 +35,8 @@
     --b3: #2D2D2D;
     --b3-color: #ffffffd3;
     --grey-btn: #433c3c65;
+    --border: #2a2a2a;
+    --muted: #9ca3af;
 
   }
 }
@@ -43,6 +49,8 @@
   --b3: #2D2D2D;
   --b3-color: #ffffffd3;
   --grey-btn: #433c3c65;
+  --border: #2a2a2a;
+  --muted: #9ca3af;
 }
 
 html {
@@ -114,6 +122,15 @@ body {
 
 .bg_3{
   background: var(--b3);
+}
+
+/* Theme-aware border and muted text helpers */
+.border_1 {
+  border-color: var(--border);
+}
+
+.text_muted {
+  color: var(--muted);
 }
 
 .grey{

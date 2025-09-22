@@ -1,10 +1,7 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
 import React from 'react'
-import { useTheme } from 'next-themes'
-import { Heart, Search, SlidersHorizontal, Store, User, User2 } from 'lucide-react';
+import { Heart, Store, User2 } from 'lucide-react';
 import StoresMap from '@/components/maps/stores-map';
-import { motion } from 'framer-motion';
 import AppHeader from '@/components/app_header';
 
 
@@ -17,7 +14,7 @@ function HomeLayout({children}:{children: React.ReactNode}) {
 
   return (
     <div className='w-full h-[100vh] !max-h-[100vh] p-4 flex flex-row gap-4'>
-      <div className='w-[80px] h-full bg_2 rounded-[12px] py-4 flex flex-col gap-6 items-center justify-end'>
+      <div className='w-[80px] h-full bg_2 rounded-[12px] py-4 flex flex-col gap-6 items-center justify-end border border_1'>
         <div className='flex flex-col gap-2 items-center justify-center'>
         <div className='w-[28px] h-[28px] rounded-full bg-black bg-[url(/bot.gif)] bg-center bg-cover' />
           <p className='text-sm'>AI Chat</p>
@@ -39,13 +36,13 @@ function HomeLayout({children}:{children: React.ReactNode}) {
       <div className='w-full h-full flex flex-col gap-4 flex-grow min-h-0 overflow-hidden'>
         <AppHeader />
       <div className='w-full h-full flex flex-row gap-4 flex-1 min-h-0 overflow-hidden'>
-      <div className='min-w-[368px] w-[368px] h-full bg-[#1A1A1A] rounded-[24px] p-4 overflow-hidden flex flex-col flex-1 min-h-0'>
+      <div className='min-w-[368px] w-[368px] h-full bg_3 rounded-[24px] p-4 overflow-hidden flex flex-col flex-1 min-h-0 border border_1'>
       {children}
         {/* <br />
         <br /> */}
       </div>
 
-      <div className='w-full h-full flex-grow bg-blue-500 rounded-[24px] flex flex-col gap-4 overflow-hidden'>
+      <div className='w-full h-full flex-grow bg_3 rounded-[24px] flex flex-col gap-4 overflow-hidden border border_1'>
         {/* here */}
         <StoresMap />
       </div>
