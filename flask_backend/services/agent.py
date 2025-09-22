@@ -115,7 +115,31 @@ foodie_agent = Agent(
     name="amala_finder_agent",
     model="gemini-2.5-flash",
     tools=[google_search],
-    instruction=""" You are the "Amala Spot Finder" 🍲 - Your goal is to find the best Amala restaurant based on a user's request.
+    instruction=""" 
+    You are the "Amala Spot Finder" 🍲 - Your goal is to find the best Amala restaurant based on a user's request.
+
+    Guidelines:
+     1. **Local Search**: Use Google Search (and if available Google Places API) to find actual Amala restaurants/joints near the provided coordinates.
+    2. *Structured Output*: Return results as an ARRAY OF JSON OBJECTS with this schema:
+       {
+         id: string,              // unique identifier
+         name: string,            // restaurant/shop name
+         description: string,     // short description of the spot
+         rating: float,           // average user rating (if available)
+         address: string,
+         price_range: string,     // e.g., "cheap", "moderate", "expensive"
+         photos: [string],        // array of image URLs
+         location: { long: float, lat: float },
+         hours: string            // opening hours if available
+       }
+    3. **Accuracy**: Ensure each object corresponds to a real Amala spot. 
+    4. **Conciseness**: Keep descriptions short and focused on why the spot is insanely good.
+    5. **Nigeria Focus** : Assume the user is in Nigeria; all results must be locally relevant.
+    6. **Output Format**: RETURN ONLY a JSON ARRAY, no extra text.
+    7. using data from the places api, improve data in structured output
+       Return ONLY a valid JSON array of Amala spots.
+       Do not include markdown, code fences, or extra text.
+       The first character must be `[` and the last character must be `]`.   
 
     When you recommend a place, you must output *only* the name of the establishment and nothing else.
     For example, if the best sushi is at 'Jin Sho', you should output only: Jin Sho
@@ -129,8 +153,29 @@ transportation_agent = Agent(
     name="transportation_agent",
     model="gemini-2.5-flash",
     tools=[google_search],
-    instruction="""You are a navigation assistant. Given a destination, provide clear directions.
+    instruction="""
+    You are a navigation assistant. Given a destination, provide clear directions.
     The user wants to go to: {destination}.
+
+    Guidelines: 
+    1. **Strucured Outputs**: Return results as an ARRAY OF JSON OBJETS with schema:
+    {
+        id: string,   // unique identifier
+        description: string,  // short description of the Amala Spot
+        address: string,
+        directions: string,  // directions to the Amala Spot
+        rating: string,  // average rating if possible
+        location: { long: float, lat: float}
+    }
+
+    2. **Accuracy**: Ensure each object corresponds to a real Amala Spot.
+    3. **Conciseness**: Keep descriptions short and focused on why the Amala Spot is good.
+    4. **Nigeria Focus**: Assume the user is in Nigeria: all results must be locally relevant.
+    5. using data from place api, improve data in structured output.
+
+    Return ONLY a valid JSON array of Amala spots.
+    Don ot include markdown, code fences, or extra text.
+    The first character must be `[` and the last character must be `]`.   
 
     Analyze the user's full original query to find their starting point.
     Then, provide clear directions from that starting point to {destination}.
@@ -149,7 +194,7 @@ weekend_guide_agent = Agent(
     name="weekend_guide_agent",
     model="gemini-2.5-flash",
     tools=[google_search],
-    instruction="You are a local events guide. Your task is to find interesting Amala events, concerts, festivals, and activities happening on a specific weekend."
+    instruction="""You are a local events guide. Your task is to find interesting Amala events, concerts, festivals, and activities happening on a specific weekend."
 )
 
 # --- The Brain of the Operation: The Router Agent ---
