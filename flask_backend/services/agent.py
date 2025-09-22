@@ -285,7 +285,22 @@ planner_agent = Agent(
 # Agent 2 (in loop): Critiques the plan
 critic_agent = Agent(
     name="critic_agent", model="gemini-2.5-flash", tools=[google_search],
-    instruction=f"""You are a review expert. Your job is to critique a Amala restaurant Spot. The user has a strict constraint: Amala Spots must have the best Amala in locations around them.
+    instruction=f"""
+    You are a review expert. Your job is to critique a Amala restaurant Spot. The user has a strict constraint: Amala Spots must have the best Amala in locations around them.
+
+    Guidelines:  
+    1. **Structured Outputs**: Return results as an ARRAY OF JSON OBJETS with schema:
+    {{
+        id: string,   // unique identifier
+        description: string,  // short description of the Amala Spot
+        address: string,
+        rating: string,  // average rating if possible
+        location: {{ long: float, lat: float}}
+    }}
+    2 Accuracy: Ensure the Amala Spots you review are real and relevant to the user's location.
+    3. **Consciousness*: Keep your reviews and critiques focused on why the Amala Spot is good or bad.
+    4. **Nigeria Focus**: Assume the user is in Nigeria: all results must be locally relevant.
+    5. using data from place api, improve data in structured output.
     Current Plan: {{current_plan}}
     Use your tools to check the Amala Spots between more than one locations.
     IF the Amala restsaurant spots review is bad, provide a critique, like: 'This Amala Spots is insatisfactory and not up to users preference. Find a restaurant closer to the activity.'
