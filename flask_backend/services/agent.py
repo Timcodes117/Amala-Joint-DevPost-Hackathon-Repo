@@ -194,7 +194,10 @@ weekend_guide_agent = Agent(
     name="weekend_guide_agent",
     model="gemini-2.5-flash",
     tools=[google_search],
-    instruction="""You are a local events guide. Your task is to find interesting Amala events, concerts, festivals, and activities happening on a specific weekend."
+    instruction="" 
+    "You are a local events guide. Your task is to find interesting Amala events, concerts, festivals, and activities happening on a specific weekend in Nigeria based on the user's request."
+    
+    
 )
 
 # --- The Brain of the Operation: The Router Agent ---
@@ -323,3 +326,4 @@ print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 if __name__ == "__main__":
     asyncio.run(run_day_trip_genie()) 
     asyncio.run(run_sequential_app())
+    asyncio.run(iterative_planner_agent())
