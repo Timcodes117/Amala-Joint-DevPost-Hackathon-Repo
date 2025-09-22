@@ -8,11 +8,12 @@ import json
 # from IPython.display import display, Markdown
 import google.generativeai as genai
 from google.adk.agents import Agent
-from google.adk.tools import google_search, google_api_tool
+from google.adk.tools import google_search, ToolContext
+#from google.adk.tools import google_search, google_api_tool, ToolContext
 #from IPython.display import display, Markdown
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, Session
-from google.genai.types import Content, Part, ToolContext
+from google.genai.types import Content, Part
 from google.adk.agents import Agent, SequentialAgent, LoopAgent
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
