@@ -58,7 +58,7 @@ function SpotCard({
           className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
         >
           <Heart
-            size={22}
+            size={18}
             className={localFav ? 'fill-white text-white' : 'text-white'}
           />
         </button>
