@@ -5,7 +5,7 @@ import React, { useState } from 'react'
 import ForgotPasswordModal from '@/components/forgot-password-modal'
 
 
-function page() {
+function Page() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -31,7 +31,7 @@ function page() {
           <div className='w-full my-8'>
             <h1 className='text-[28px] font-semibold text-gray-100 mb-2'>Login to Continue</h1>
             <p className='text-gray-300 text-sm'>
-              Enter your details, and let's continue the fun.<br />
+              Enter your details, and let&apos;s continue the fun.<br />
               Get the nearest serving of Amala near you!
             </p>
           </div>
@@ -102,7 +102,7 @@ function page() {
           {/* Signup Link */}
           <div className='text-center mt-6'>
             <span className='text-gray-300 text-sm'>
-              Don't have an account yet?{' '}
+              Don&apos;t have an account yet?{' '}
               <a href="/auth/signup" className='text-white underline hover:text-gray-300 font-medium'>
                 Create new account
               </a>
@@ -112,4 +112,4 @@ function page() {
   )
 }
 
-export default page
+export default Page

@@ -4,7 +4,7 @@ import InputField from '@/components/input-field'
 import React, { useState } from 'react'
 
 
-function page() {
+function Page() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -127,7 +127,7 @@ function page() {
           {/* Signup Link */}
           <div className='text-center mt-6'>
             <span className='text-gray-300 text-sm'>
-              Don't have an account yet?{' '}
+              Don&apos;t have an account yet?{' '}
               <a href="/auth/signup" className='text-white underline hover:text-gray-300 font-medium'>
                 Create new account
               </a>
@@ -137,4 +137,4 @@ function page() {
   )
 }
 
-export default page
+export default Page

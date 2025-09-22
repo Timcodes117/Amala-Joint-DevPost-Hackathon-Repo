@@ -43,9 +43,9 @@ function SpotCard({
   }
 
   return (
-    <div className="w-full min-h-fit rounded-[16px] bg_2 p-2 overflow-hidden border border-gray-800/40">
+    <div className="w-full min-h-fit rounded-[16px] bg_2 p-2 overflow-hidden border border_1">
       {/* Image + favorite */}
-      <div className="relative w-full h-[146px] bg-gray-900 rounded-[12px] overflow-hidden">
+      <div className="relative w-full h-[146px] bg_3 rounded-[12px] overflow-hidden">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
@@ -83,13 +83,13 @@ function SpotCard({
         </div>
 
         {/* Location */}
-        <div className="mt-2 text-gray-400 flex items-center gap-1 text-sm">
+        <div className="mt-2 text_muted flex items-center gap-1 text-sm">
           <MapPin size={18} />
           <span>{location}</span>
         </div>
 
         {/* Meta: hours, distance, eta */}
-        <div className="mt-2 text-gray-400 flex items-center gap-2 text-sm">
+        <div className="mt-2 text_muted flex items-center gap-2 text-sm">
           <div className="flex items-center gap-1">
             <Clock size={18} />
             <span>
@@ -106,7 +106,7 @@ function SpotCard({
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={onDirections}
-            className="flex-1 h-[43px] rounded-full bg-[#433C3C] text-white px-4 text-[15px]"
+            className="flex-1 h-[43px] rounded-full grey text-white px-4 text-[15px]"
           >
             Directions
           </button>
