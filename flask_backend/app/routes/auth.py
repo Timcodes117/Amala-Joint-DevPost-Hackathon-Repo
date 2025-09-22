@@ -11,7 +11,7 @@ auth_bp = Blueprint('auth', __name__)
 def validate_user_data(data):
     errors = {}
     if 'name' not in data or not str(data['name']).strip():
-        errors['name'] = 'Name is required'
+        errors['name'] = 'Name is required' 
     if 'email' not in data or not str(data['email']).strip():
         errors['email'] = 'Email is required'
     elif '@' not in data['email']:
