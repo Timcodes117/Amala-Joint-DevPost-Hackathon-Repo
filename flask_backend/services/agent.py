@@ -19,7 +19,7 @@ from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 
-api_key = 'AIzaSyBbZHx_zJZL8ga_JBxI8d7piyMyh1T7Rko'
+api_key = 'AIzaSyBIRn4U9-rPQg3bVFWweJR-RLRQhRpngUg'
 
 # Get Your API Key HERE 👉 https://codelabs.developers.google.com/onramp/instructions#0
 # Configure the generative AI library with the provided key
