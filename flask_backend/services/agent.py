@@ -187,9 +187,9 @@ print("🤖 Agent team assembled with a SequentialAgent workflow!")
 
 async def run_sequential_app():
     queries = [
-        "I want to eat the best sushi in Palo Alto.", # Should go to foodie_agent
+        "I want to eat the best Amala in Surulere.", # Should go to foodie_agent
         "Are there any cool outdoor concerts this weekend?", # Should go to weekend_guide_agent
-        "Find me the best sushi in Palo Alto and then tell me how to get there from the Caltrain station." # Should trigger the SequentialAgent
+        "Find me the best Amala Spot in Surulere and then tell me how to get there from the Yaba." # Should trigger the SequentialAgent
     ]
 
     for query in queries:
@@ -277,3 +277,4 @@ print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 
 if __name__ == "__main__":
     asyncio.run(run_day_trip_genie()) 
+    asyncio.run(run_sequential_app())
