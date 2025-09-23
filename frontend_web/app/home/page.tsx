@@ -38,9 +38,9 @@ function Page() {
           </div>
 
        </div>
-       <br />
-          <hr className='border border_1' />
-       <br />
+      
+          <hr className='border border_1 my-2' />
+      
       <div className='w-full h-full flex-grow flex flex-col overflow-y-scroll csb gap-4'>
         {new Array(5).fill("test").map((_, index) => (
           <SpotCard

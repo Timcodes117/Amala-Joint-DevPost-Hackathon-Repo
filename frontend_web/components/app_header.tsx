@@ -19,14 +19,14 @@ function AppHeader() {
                 </Link>
 
                 <div className='flex flex-row gap-3'>
-                    <div className='flex flex-row gap-2 p-2 px-3 items-center justify-center rounded-full bg_2 border border_1'>
+                    <div className='flex flex-row gap-2 p-2 px-3 items-center justify-center rounded-full bg-gray-100/10'>
                     <MapPinned size={20} /> <p className='text-sm'>Your Location</p>
                     </div>
                     
-                    <div className='flex flex-row gap-2 p-2 items-center justify-center rounded-full bg_2 border border_1'>
+                    <div className='flex flex-row gap-2 p-2 items-center justify-center rounded-full bg-gray-100/10'>
                     <BellDot size={20} />
                     </div>
-                    <div className='flex flex-row gap-2 p-2 items-center justify-center rounded-full bg_2 border border_1'>
+                    <div className='flex flex-row gap-2 p-2 items-center justify-center rounded-full bg-gray-100/10'>
                     <ThemeToggle />
                     </div>
                 </div>

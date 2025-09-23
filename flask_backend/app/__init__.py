@@ -9,6 +9,7 @@ from .extensions import cors, jwt, mongo_client, init_mongo_indexes
 from .routes.auth import auth_bp
 from .routes.users import users_bp
 from .routes.health import health_bp
+from .routes.ai_chat import ai_chatbot_bp
 
 
 
@@ -28,6 +29,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(health_bp, url_prefix="/api/health")
+    app.register_blueprint(ai_chatbot_bp, url_prefix="/api/ai/")
 
     @app.get("/")
     def root():
@@ -38,6 +40,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
                 "auth": "/api/auth",
                 "users": "/api/users",
                 "health": "/api/health",
+                "chatbot": "/api/ai",
             },
         }
 
