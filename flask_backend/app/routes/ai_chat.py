@@ -41,30 +41,6 @@ def chat():
     response = process_text(message)
     return jsonify({'success': True, 'response': response}), 200
 
-#@ai_chatbot_bp('/agents/gemini-2.5-flash', methods=['POST'])
-@jwt_required()
-def run_agents(name):
-    data.request.get_json()
-    query = data.get('query', '')
-
-    async def _runner():
-        if name == "day_trip_genie":
-            return await run_day_trip_genie(query)
-        elif name == "sequential_app":
-            return await run_sequential_app(query)
-        elif name == "planner_agent":
-            session_service = SessionService() # Ensure session_service is defined
-            session = await session_service.create_session(app_name=iterative_planner_agent.name, user_id="user_123")
-            return await run_agent_query(iterative_planner_agent, query, session, user_id="user_123")
-        else:
-            return f"Unknown agent: {name}"
-    result = asyncio.run(_runner())
-    return jsonify({"agent":name, "query": query, "result": str(result)}), 200
-
-
-        
-    
-    
 
 
 
