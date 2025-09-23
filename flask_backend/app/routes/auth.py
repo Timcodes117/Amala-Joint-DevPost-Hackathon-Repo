@@ -45,6 +45,7 @@ def signup():
         'created_at': now,
         'updated_at': now,
         'is_active': True,
+        'email_verified': False
     }
     result = db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
