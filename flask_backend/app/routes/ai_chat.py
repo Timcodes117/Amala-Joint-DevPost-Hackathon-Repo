@@ -41,7 +41,7 @@ def chat():
     response = process_text(message)
     return jsonify({'success': True, 'response': response}), 200
 
-@ai_chatbot_bp('/agents/gemini-2.5-flash', methods=['POST'])
+#@ai_chatbot_bp('/agents/gemini-2.5-flash', methods=['POST'])
 @jwt_required()
 def run_agents(name):
     data.request.get_json()
