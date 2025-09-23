@@ -16,6 +16,16 @@ load_dotenv()
 key_path = os.path.join(os.path.dirname(__file__), "..", "keys", "google-translate-key.json")
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(key_path)
 
+import google.generativeai as genai
+from google.adk.agents import Agent
+from google.adk.tools import google_search
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService, Session
+from google.genai.types import Content, Part
+from google.cloud import translate_v2 as translate
+from getpass import getpass 
+
+
 translate_client = translate.Client()
 
 def translate_text(
