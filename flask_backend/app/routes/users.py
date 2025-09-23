@@ -2,10 +2,10 @@ from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document
+from ...app import ls as location_service
 
 
 users_bp = Blueprint('users', __name__)
-
 
 @users_bp.get('/')
 @jwt_required()
