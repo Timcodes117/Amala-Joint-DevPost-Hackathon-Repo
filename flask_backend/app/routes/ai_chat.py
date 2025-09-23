@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document
@@ -12,12 +12,18 @@ ai_chatbot_bp = Blueprint('users', __name__)
 def list_users():
     return jsonify({'success': True, 'data': "respones"}), 200
 
-# @ai_chatbot_bp.post('/chat')
-# @jwt_required()
-#    def chat():
-#        user_message = request.json['message']
-#        response = ai_agent_enhanced(user_message)
-#        return {'response': response}
+@ai_chatbot_bp("/translate", methods=["POST"])
+def translate():
+    data = request.get_json()
+    text = data.get("text", "")
+    lang = data.get("lang", "yo")  # default to Yoruba
+
+    translated = process_text(text, lang)
+    return jsonify({
+        "original": text,
+        "translated": translated,
+        "target_lang": lang
+    })
 
 
 

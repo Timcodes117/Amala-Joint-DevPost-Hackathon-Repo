@@ -347,20 +347,23 @@ def ai_agent(message: str, lang: str = None) -> str:
     :param lang: Optional target language code for translation (e.g., 'yo', 'en').
     """
 
-    # Auto detect language if not provided
+    #  Auto-detect input language if not provided
     detected_lang = lang if lang else detect_language(message)
     print(f"Detected language: {detected_lang}")
 
-    # Translate to English if not already in English
+    #  Translate message to English (AI thinks in English)
     text_for_ai = message
     if detected_lang != "en":
         text_for_ai = translate_text(message, "en")
 
-    # Translate back if needed
-    if detected_lang !="en":
+   c
+
+    # Translate AI response back to user’s language (if not English)
+    if detected_lang != "en":
         ai_response = translate_text(ai_response, detected_lang)
 
-        return ai_response       
+    return ai_response
+
 
     # #Auto detect language if not provided
     # if not lang:
@@ -397,4 +400,8 @@ def ai_agent(message: str, lang: str = None) -> str:
 if __name__ == "__main__":
     asyncio.run(run_day_trip_genie()) 
     asyncio.run(run_sequential_app())
+    text = "hello, how are you?"
+    translated = ai_agent(text, target_language='yo')
+    print("original:", text)
+    print("translated:", translated)
     asyncio.run(iterative_planner_agent())
