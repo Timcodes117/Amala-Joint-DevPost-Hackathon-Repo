@@ -12,6 +12,13 @@ ai_chatbot_bp = Blueprint('users', __name__)
 def list_users():
     return jsonify({'success': True, 'data': "respones"}), 200
 
+# @ai_chatbot_bp.post('/chat')
+# @jwt_required()
+#    def chat():
+#        user_message = request.json['message']
+#        response = ai_agent_enhanced(user_message)
+#        return {'response': response}
+
 
 
 # hey victor
@@ -23,7 +30,7 @@ def list_users():
 
 # to create an endpoint 
 # use the blueprint decorator to call an api method [GET, POST, PUT, ...OTHERS]
-# if you want to make the endpoint secure by expecting an access Token from the from the frontend
+# if you want to make the endpoint secure by expecting an access Token from the frontend
 # continue with the @jwt_required() decorator before calling the api function
 #  then create the api function
 # then do your logic and return a valid response conditionally or not.

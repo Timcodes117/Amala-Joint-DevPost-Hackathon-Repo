@@ -15,10 +15,11 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, Session
 from google.genai.types import Content, Part
 from google.adk.agents import Agent, SequentialAgent, LoopAgent
+from helpers.translate_helper import translate_text, detect_language
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
-
+# Set up your API key
 api_key = 'AIzaSyBIRn4U9-rPQg3bVFWweJR-RLRQhRpngUg'
 
 # Get Your API Key HERE 👉 https://codelabs.developers.google.com/onramp/instructions#0
@@ -339,6 +340,59 @@ print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 
 
 
+def ai_agent(message: str, lang: str = None) -> str:
+    """
+    Handle AI conversation flow with translation support.
+    :param message: The user's message to process.
+    :param lang: Optional target language code for translation (e.g., 'yo', 'en').
+    """
+
+    # Auto detect language if not provided
+    detected_lang = lang if lang else detect_language(message)
+    print(f"Detected language: {detected_lang}")
+
+    # Translate to English if not already in English
+    text_for_ai = message
+    if detected_lang != "en":
+        text_for_ai = translate_text(message, "en")
+
+    # Translate back if needed
+    if detected_lang !="en":
+        ai_response = translate_text(ai_response, detected_lang)
+
+        return ai_response       
+
+    # #Auto detect language if not provided
+    # if not lang:
+    #     detection = detect_language(message)
+    #     lang = detection if detection else 'en'
+    #     print(f"Detected language: {lang}")
+    
+    # # Auto-detect language if provided
+    # if lang:
+    #     translation_result = translate_text(text=message, target_language='en')
+    #     message = translation_result[0]['translatedText']
+    #     print(f"Translated to English: {message}")
+    
+    #    # Translate back to English if needed
+    # if lang != 'en':
+    #     translation_result = translate_text(text=message, target_language=lang)
+    #     message = translation_result[0]['translatedText']
+    #     print(f"Translated back to {lang}: {message}")
+
+    # #Translate to Yruba if needed
+    # if lang != 'yo':
+    #     translation_result = translate_text(text=message, target_language='yo')
+    #     message = translation_result[0]['translatedText']
+    #     print(f"Translated to Yoruba: {message}")
+
+    # # Translate to pidgin if needed
+    # if lang != 'pcm':
+    #     translation_result = translate_text(text=message, target_language='pcm')
+    #     message = translation_result[0]['translatedText']
+    #     print(f"Translated to Pidgin: {message}")
+
+                
 
 if __name__ == "__main__":
     asyncio.run(run_day_trip_genie()) 
