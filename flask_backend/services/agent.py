@@ -78,6 +78,7 @@ def create_amala_finder_agent():
         4. **Conciseness**: Keep descriptions short and focused on why the spot is good.
         5. **Nigeria Focus**: Assume the user is in Nigeria; all results must be locally relevant.
         6. using data from the places api, improve data in structured output
+        7.**Suggestions**: Make suggestions of available Amala Spots based on user's requests and if user can find any Amala Spots in their geographical location.
 
         RETURN ONLY a JSON ARRAY, no extra text.
         Return ONLY a valid JSON array of Amala spots.
@@ -137,6 +138,7 @@ foodie_agent = Agent(
     5. **Nigeria Focus** : Assume the user is in Nigeria; all results must be locally relevant.
     6. **Output Format**: RETURN ONLY a JSON ARRAY, no extra text.
     7. using data from the places api, improve data in structured output
+    8. **Suggestions**: Make suggestions of available Amala Spots based on user's requests and if user can find any Amala Spots in their geographical location.
        Return ONLY a valid JSON array of Amala spots.
        Do not include markdown, code fences, or extra text.
        The first character must be `[` and the last character must be `]`.   
