@@ -356,7 +356,8 @@ def ai_agent(message: str, lang: str = None) -> str:
     if detected_lang != "en":
         text_for_ai = translate_text(message, "en")
 
-   c
+    # Let AI process (for now just echo, but normally you'd call your logic)
+    ai_response = f"You said: {text_for_ai}"
 
     # Translate AI response back to user’s language (if not English)
     if detected_lang != "en":
@@ -365,37 +366,7 @@ def ai_agent(message: str, lang: str = None) -> str:
     return ai_response
 
 
-    # #Auto detect language if not provided
-    # if not lang:
-    #     detection = detect_language(message)
-    #     lang = detection if detection else 'en'
-    #     print(f"Detected language: {lang}")
-    
-    # # Auto-detect language if provided
-    # if lang:
-    #     translation_result = translate_text(text=message, target_language='en')
-    #     message = translation_result[0]['translatedText']
-    #     print(f"Translated to English: {message}")
-    
-    #    # Translate back to English if needed
-    # if lang != 'en':
-    #     translation_result = translate_text(text=message, target_language=lang)
-    #     message = translation_result[0]['translatedText']
-    #     print(f"Translated back to {lang}: {message}")
-
-    # #Translate to Yruba if needed
-    # if lang != 'yo':
-    #     translation_result = translate_text(text=message, target_language='yo')
-    #     message = translation_result[0]['translatedText']
-    #     print(f"Translated to Yoruba: {message}")
-
-    # # Translate to pidgin if needed
-    # if lang != 'pcm':
-    #     translation_result = translate_text(text=message, target_language='pcm')
-    #     message = translation_result[0]['translatedText']
-    #     print(f"Translated to Pidgin: {message}")
-
-                
+            
 
 if __name__ == "__main__":
     asyncio.run(run_day_trip_genie()) 

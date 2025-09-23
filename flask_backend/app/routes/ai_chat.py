@@ -1,7 +1,12 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
+from services.agent import process_text
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document
+from helpers.agent_query import run_agent_query
+import asyncio
+from google.adk.sessions import SessionService
+from services.agent import (run_day_trip_genie, run_sequential_app, iterative_planner_agent)
 
 
 ai_chatbot_bp = Blueprint('users', __name__)
@@ -16,7 +21,7 @@ def list_users():
 def translate():
     data = request.get_json()
     text = data.get("text", "")
-    lang = data.get("lang", "yo")  # default to Yoruba
+    lang = data.get("lang", "en")  # default to English
 
     translated = process_text(text, lang)
     return jsonify({
@@ -24,6 +29,42 @@ def translate():
         "translated": translated,
         "target_lang": lang
     })
+
+@ai_chatbot_bp.post('/chat')
+@jwt_required()
+def chat():
+    data = request.get_json() or {}
+    message = data.get('message', '')
+    if not message:
+        return jsonify({'success': False, 'error': 'Message is required'}), 400
+
+    response = process_text(message)
+    return jsonify({'success': True, 'response': response}), 200
+
+@ai_chatbot_bp('/agents/gemini-2.5-flash', methods=['POST'])
+@jwt_required()
+def run_agents(name):
+    data.request.get_json()
+    query = data.get('query', '')
+
+    async def _runner():
+        if name == "day_trip_genie":
+            return await run_day_trip_genie(query)
+        elif name == "sequential_app":
+            return await run_sequential_app(query)
+        elif name == "planner_agent":
+            session_service = SessionService() # Ensure session_service is defined
+            session = await session_service.create_session(app_name=iterative_planner_agent.name, user_id="user_123")
+            return await run_agent_query(iterative_planner_agent, query, session, user_id="user_123")
+        else:
+            return f"Unknown agent: {name}"
+    result = asyncio.run(_runner())
+    return jsonify({"agent":name, "query": query, "result": str(result)}), 200
+
+
+        
+    
+    
 
 
 
