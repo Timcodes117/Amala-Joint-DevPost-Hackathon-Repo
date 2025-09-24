@@ -1,20 +1,17 @@
-from flask import Blueprint, jsonify, request, FLASK
+from flask import Blueprint, jsonify, request, Flask
 from flask_jwt_extended import jwt_required
-from services.agent import process_text
+from services.agent import ai_agent
 from ..extensions import mongo_client
-from ..utils.mongo import serialize_document
-from helpers.agent_query import run_agent_query
 import asyncio
-from google.adk.sessions import SessionService
 from services.agent import (worker_agents, router_agent, run_agent_query, session_service, my_user_id, day_trip_agent,iterative_planner_agent)
 from flask_cors import CORS # Import CORS
 from services.agent import ai_agent
 
-app = FLASK(__name__)
+app = Flask(__name__)
 
 #enable cors for all routes
 CORS(app)
-ai_chatbot_bp = Blueprint('users', __name__)
+ai_chatbot_bp = Blueprint('ai_chatbot_bp', __name__)
 navigate_bp = Blueprint('navigate_bp', __name__)
 amala_finder_bp = Blueprint('amala_finder_bp', __name__)
 planner_bp = Blueprint('planner_bp', __name__)
