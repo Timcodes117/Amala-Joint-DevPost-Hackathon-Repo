@@ -8,7 +8,7 @@ function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className='w-[80px] h-full  bg-gray-100/10 rounded-[12px] py-4 hidden md:flex flex-col gap-6 items-center justify-end shadow-md'>
+    <div className='w-[80px] h-full  bg_2 rounded-[12px] py-4 hidden md:flex flex-col gap-6 items-center justify-end shadow-md'>
         <Link href={'/home/chat'} className='flex flex-col gap-2 items-center justify-center'>
         <div  className='w-[28px] h-[28px] rounded-full bg-black bg-[url(/bot.gif)] bg-center bg-cover' />
           <p className='text-xs'>AI Chat</p>

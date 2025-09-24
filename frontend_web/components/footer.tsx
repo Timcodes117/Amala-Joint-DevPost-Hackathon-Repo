@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
           {/* Column 1 - Brand Information */}
           <div className="space-y-4 mr-2">
             <div className="space-y-2">
-            <img src={"/svgs/logo.svg"} className={`h-[64px] w-[321px] bg-contain bg-center`} />
+            <img src={"/svgs/logo.svg"} className={`h-[64px] w-[321px] bg-contain bg-center`} alt="Amala Logo" />
 
               <p className="text-gray-300 text-sm leading-relaxed">
                 {t('footer_description')}

@@ -1,10 +1,11 @@
 "use client"
-import { ArrowUpDown } from 'lucide-react'
-import SpotCard from '@/components/spot-card'
+import { ArrowUpDown, Plus } from 'lucide-react'
 import { type SearchResult } from '@/components/search-popover'
 import SearchBar from '@/components/search-bar'
 import React, { useMemo } from 'react'
 import ResultsContainer from '@/components/resultsContainer'
+import Link from 'next/link'
+import StoresMap from '@/components/maps/stores-map'
 
 function Page() {
   const DUMMY: SearchResult[] = useMemo(
@@ -41,8 +42,19 @@ function Page() {
        </div>
       
           <hr className='border border_1 my-2' />
+
+      <div className='w-full flex-1 min-h-0 flex flex-col md:overflow-y-auto csb gap-4 overscroll-contain'>
+          <div  className='relative md:hidden flex flex-row items-center justify-end w-full min-h-[200px] overflow-hidden rounded-xl bg-gray-100 mb-2'>
+            <StoresMap />
+            <Link
+              href='?mobileMap=1'
+              className='md:hidden absolute top-3 right-3 px-3 py-2 rounded-full bg-black/80 text-white text-sm'
+              aria-label='Open map full-screen'
+            >
+              Open Map
+            </Link>
+          </div>
       
-      <div className='w-full h-full flex-grow flex flex-col overflow-y-scroll csb gap-4'>
         {new Array(5).fill("test").map((_, index) => (
           <ResultsContainer
             key={index}
@@ -59,7 +71,14 @@ function Page() {
             onExplore={() => {}}
           />
         ))}
+        <br />
       </div>
+
+      {/* Floating action button to add a new store */}
+      <Link href='/home/new' aria-label='Add new store'
+        className='absolute bottom-6 right-6 z-40 h-14 w-14 rounded-full pry-bg text-white flex items-center justify-center shadow-lg shadow-black/20 hover:opacity-90 active:opacity-80'>
+        <Plus size={24} />
+      </Link>
     </>
   )
 }

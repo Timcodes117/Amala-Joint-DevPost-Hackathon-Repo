@@ -5,10 +5,10 @@ import LogoMarquee from '@/components/logo-marquee'
 import MainHeader from '@/components/main-header'
 import UserLocationMap from '@/components/maps/userMap'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { Quote } from 'lucide-react'
 import React from 'react'
 import { BsQuote } from 'react-icons/bs'
-import { motion, AnimatePresence, useInView } from 'framer-motion'
+import { motion, useInView } from 'framer-motion'
+import Image from 'next/image'
 import { useRef } from 'react'
 
 function Page() {
@@ -347,13 +347,13 @@ function Page() {
               variants={fadeInLeft}
             >
               <motion.h2 
-                className='w-full font-medium text-2xl sm:text-3xl md:text-4xl lg:text-[48px] leading-tight font-semibold'
+                className='w-full text-2xl sm:text-3xl md:text-4xl lg:text-[48px] leading-tight font-semibold'
                 variants={fadeInUp}
               >
                 {t('browse_catalogue')}
               </motion.h2>
               <motion.h2 
-                className='w-full font-medium text-2xl sm:text-3xl md:text-4xl lg:text-[48px] leading-tight font-semibold mt-2'
+                className='w-full text-2xl sm:text-3xl md:text-4xl lg:text-[48px] leading-tight font-semibold mt-2'
                 variants={fadeInUp}
               >
                 {t('verified_stores')}
@@ -412,10 +412,12 @@ function Page() {
                   {/* Left side - Image */}
               
                     <div className="w-[60px] h-[60px] sm:w-[70px] sm:h-[70px] md:w-[80px] md:h-[80px] rounded-[12px] bg-gray-200 overflow-hidden">
-                      <img 
+                      <Image 
                         src="/images/amala_shop.png" 
                         alt="The Amala Camp restaurant exterior" 
                         className="w-full h-full object-cover"
+                        width={80}
+                        height={80}
                       />
                     </div>
                   

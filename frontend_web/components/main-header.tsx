@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { RxDividerVertical } from 'react-icons/rx'
 import { useTheme } from 'next-themes'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -11,7 +12,7 @@ import { Menu, X } from 'lucide-react'
 
 function MainHeader() {
     const { t, language, setLanguage } = useLanguage()
-    const { theme, resolvedTheme } = useTheme()
+    const { resolvedTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -50,10 +51,12 @@ function MainHeader() {
             <div className="w-full h-[60px] sm:h-[70px] md:h-[80px] flex flex-row items-center justify-between text-sm px-4 sm:px-6 md:px-8 lg:px-20">
                 {/* Logo */}
                 <div className='flex-shrink-0'>
-                    <img 
+                    <Image 
                         src={"/svgs/logo.svg"} 
                         className={`h-[24px] w-[120px] sm:h-[28px] sm:w-[140px] md:h-[32px] md:w-[156px] bg-contain bg-center ${shouldInvert ? 'invert' : ''}`} 
                         alt="Amala Logo"
+                        width={156}
+                        height={32}
                     />
                 </div>
 
@@ -71,10 +74,12 @@ function MainHeader() {
                     
                     {/* Language Selector */}
                     <div className='flex gap-2 items-center justify-center'>
-                        <img 
+                        <Image 
                             src={"/svgs/Translate.svg"} 
                             className={`h-[16px] w-[16px] sm:h-[18px] sm:w-[18px] bg-contain bg-center ${shouldInvert ? 'invert' : ''}`} 
                             alt="Language"
+                            width={18}
+                            height={18}
                         />
                         <Select.Root value={language} onValueChange={(value) => setLanguage(value as 'en' | 'yo')}>
                             <Select.Trigger 

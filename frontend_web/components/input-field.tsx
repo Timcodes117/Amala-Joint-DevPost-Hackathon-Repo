@@ -20,7 +20,7 @@ export default function InputField({
   placeholder,
   value,
   onChange,
-  isObscure = false,
+  isObscure: _isObscure = false,
   className = '',
   required = false
 }: InputFieldProps) {

@@ -37,7 +37,7 @@ const getDefaultFAQs = (t: (key: string) => string): FAQItem[] => [
   }
 ]
 
-export default function FAQAccordion({ faqs, title }: FAQAccordionProps) {
+export default function FAQAccordion({ faqs }: FAQAccordionProps) {
   const { t } = useLanguage()
   const defaultFAQs = getDefaultFAQs(t)
   const faqItems = faqs || defaultFAQs
@@ -69,7 +69,7 @@ export default function FAQAccordion({ faqs, title }: FAQAccordionProps) {
 
       {/* FAQ Items */}
       <div className="space-y-0">
-        {faqItems.map((faq, index) => {
+        {faqItems.map((faq) => {
           const isExpanded = expandedItems.has(faq.id)
           
           return (

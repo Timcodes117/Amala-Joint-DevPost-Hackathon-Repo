@@ -1,15 +1,13 @@
 'use client'
 
-import MainHeader from '@/components/main-header'
-import InputField from '@/components/input-field'
-import React, { useState } from 'react'
-import { Eye } from 'lucide-react'
+import React from 'react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
+import Image from 'next/image'
 
 function AuthLayout({children}:{children: React.ReactNode}) {
 
-  const { theme, resolvedTheme } = useTheme()
+  const { theme } = useTheme()
 
 
   return (
@@ -19,10 +17,12 @@ function AuthLayout({children}:{children: React.ReactNode}) {
         <div className='w-full h-full flex flex-col items-center   px-4'>
           {/* Header */}
           <Link href={"/"} className='flex-shrink-0 w-full my-8 px-10'>
-                    <img 
+                    <Image 
                         src={"/svgs/logo.svg"} 
                         className={`h-[24px] w-[120px] sm:h-[28px] sm:w-[140px] md:h-[32px] md:w-[156px] bg-contain bg-center ${theme === "light" ? 'invert' : ''}`} 
                         alt="Amala Logo"
+                        width={156}
+                        height={32}
                     />
                 </Link>
           <div className='w-full max-w-md'>
