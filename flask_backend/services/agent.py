@@ -411,3 +411,8 @@ if __name__ == "__main__":
     print(f"AI Response: {response_fr}\n")
 
     
+# asyncio.run(run_day_trip_genie()) 
+# asyncio.run(run_sequential_app())
+# asyncio.run(iterative_planner_agent())
+
+    
