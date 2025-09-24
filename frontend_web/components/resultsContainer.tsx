@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react'
 import { Heart, MapPin, Clock, Star, CheckCircle2 } from 'lucide-react'
+import { HiCheckBadge } from 'react-icons/hi2'
+import Link from 'next/link'
 
-export type SpotCardProps = {
+export type ResultsContainerProps = {
   name: string
   location: string
   opensAt: string
@@ -19,7 +21,7 @@ export type SpotCardProps = {
   onToggleFavorite?: (next: boolean) => void
 }
 
-function SpotCard({
+function ResultsContainer({
   name,
   location,
   opensAt,
@@ -33,7 +35,7 @@ function SpotCard({
   onExplore,
   onDirections,
   onToggleFavorite,
-}: SpotCardProps) {
+}: ResultsContainerProps) {
   const [localFav, setLocalFav] = useState<boolean>(!!isFavorite)
 
   const toggleFav = () => {
@@ -43,55 +45,57 @@ function SpotCard({
   }
 
   return (
-    <div className="w-full min-h-fit rounded-[16px] p-3 overflow-hidden ">
+    <div className="w-full min-h-fit !border-gray-600/90 p-2 overflow-hidden  relative border-b flex flex-row gap-2">
       {/* Image + favorite */}
-      <div className="relative w-full h-[150px] bg_3 rounded-[12px] overflow-hidden">
+      <div className="relative w-[100px] h-[100px] min-w-[100px] bg_3 rounded-[12px] overflow-hidden">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
         ) : null}
 
-        {/* Favorite button */}
-        <button
+        
+
+        {/* Verified badge */}
+        {/* {verified ? (
+          <div className="absolute bottom-4 right-4 px-3 py-1 rounded-full bg-black/60 text-white text-xs flex items-center gap-1">
+            <CheckCircle2 size={14} />
+            <span>Verified</span>
+          </div>
+        ) : null} */}
+      </div>
+
+      {/* Content */}
+      <div className=" w-full">
+        <div className="flex items-start justify-between gap-2 w-full">
+          <b className="text-[18px] md:text-[20px] font-semibold line-clamp-2 flex items-center flex-wrap">
+            <span className="inline-flex items-center gap-1 ">
+              {name}
+              <HiCheckBadge className='pry-color ml-1 min-w-[18px]' size={18}  />
+            </span>
+          </b>
+          {/* Favorite button */}
+        {/* <button
           onClick={toggleFav}
           aria-label="favorite"
-          className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
+          className="  top-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center"
         >
           <Heart
             size={18}
             className={localFav ? 'fill-white text-white' : 'text-white'}
           />
-        </button>
-
-        {/* Verified badge */}
-        {verified ? (
-          <div className="absolute bottom-4 right-4 px-3 py-1 rounded-full bg-black/60 text-white text-xs flex items-center gap-1">
-            <CheckCircle2 size={14} />
-            <span>Verified</span>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Content */}
-      <div className="mt-2 w-full">
-        <div className="flex items-center justify-between gap-2 w-full mt-3">
-          <b className="text-[18px] sm:text-[20px] font-semibold">{name}</b>
-          <div className="flex items-center gap-1 pry-yellow-color ">
-            <Star size={14} className="fill-current" />
-            <span className="font-semibold text-sm">{rating.toFixed(2)}</span>
-          </div>
+        </button> */}
         </div>
 
         {/* Location */}
-        <div className="mt-2 text_muted flex items-center gap-1 text-sm text-gray-800 ">
+        <div className="mt-2 text_muted flex items-center gap-1 text-xs">
           <MapPin size={18} />
           <span>{location}</span>
         </div>
 
         {/* Meta: hours, distance, eta */}
-        <div className="mt-2 text_muted flex items-center gap-2 text-sm text-gray-800">
+        <div className="mt-2 text_muted flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <Clock size={18} />
+            {/* <Clock size={18} /> */}
             <span>
               {opensAt} - {closesAt}
             </span>
@@ -106,22 +110,25 @@ function SpotCard({
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={onDirections}
-            className="flex-1 h-[40px] rounded-full grey text-white px-4 text-[15px]"
+            className="flex-1 h-[40px] rounded-full grey text-white px-4 text-sm"
           >
             Directions
           </button>
+          <Link
+            href={'/home/spot1'}>
           <button
             onClick={onExplore}
-            className="flex-1 h-[40px] rounded-full pry-bg text-white px-4 text-[15px]"
+            className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm"
           >
             Explore
           </button>
+          </Link>
         </div>
       </div>
     </div>
   )
 }
 
-export default SpotCard
+export default ResultsContainer
 
 

@@ -1,4 +1,13 @@
+<<<<<<< HEAD
 from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
+from ..extensions import mongo_client
+from ..utils.mongo import serialize_document
+
+
+ai_chatbot_bp = Blueprint('users', __name__)
+from flask import Blueprint, jsonify, request, FLASK
 from flask_jwt_extended import jwt_required
 from services.agent import ai_agent
 from ..extensions import mongo_client
@@ -93,6 +102,8 @@ def plan_activity():
 
 # to create an endpoint 
 # use the blueprint decorator to call an api method [GET, POST, PUT, ...OTHERS]
+# if you want to make the endpoint secure by expecting an access Token from the from the frontend
+
 # if you want to make the endpoint secure by expecting an access Token from the frontend
 # continue with the @jwt_required() decorator before calling the api function
 #  then create the api function

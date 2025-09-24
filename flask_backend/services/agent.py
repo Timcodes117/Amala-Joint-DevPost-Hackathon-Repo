@@ -15,6 +15,11 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, Session
 from google.genai.types import Content, Part
 from google.adk.agents import Agent, SequentialAgent, LoopAgent
+from getpass import getpass
+from helpers.agent_query import session_service, my_user_id, run_agent_query
+
+
+
 from helpers.translate_helper import translate_text, detect_language
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
@@ -340,6 +345,13 @@ iterative_planner_agent = SequentialAgent(
 print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 
 
+
+
+
+if __name__ == "__main__":
+    asyncio.run(run_day_trip_genie()) 
+    asyncio.run(run_sequential_app())
+    asyncio.run(iterative_planner_agent())
 
 def ai_agent(message: str, lang: str = None) -> str:
     """
