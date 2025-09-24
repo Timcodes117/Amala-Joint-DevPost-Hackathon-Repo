@@ -37,21 +37,46 @@ model=genai.GenerativeModel("gemini-2.5-flash")
 os.environ['GOOGLE_API_KEY'] = api_key
 
 print("✅ API Key configured successfully! Let the fun begin.")
+def safe_extract_json(text: str):
+    """Ensure the AI response is valid JSON array."""
+    text = text.strip()
+
+    # Remove common Markdown fences
+    if text.startswith("```json"):
+        text = text[len("```json"):].strip()
+    if text.endswith("```"):
+        text = text[:-3].strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise ValueError(f"Invalid JSON returned: {text}")
+
+
 
 def getPlaces(lat, lng) -> list[dict]:
     req = requests.get(f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=4000&keyword=amala&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528")
     return req.json();
 
 def extract_json_from_response(response):
-    """Extracts a clean JSON array from agent response text."""
-    text = "".join(part.text for part in response.parts if hasattr(part, "text"))
-    # Remove ```json fences if they exist
-    text = text.strip()
+    """Extracts a clean JSON array/object from agent response text safely."""
+    # Combine all response parts into a single string
+    text = "".join(part.text for part in response.parts if hasattr(part, "text")).strip()
+
+    # Remove Markdown fences
     if text.startswith("```json"):
-        text = text[len("```json"):]
+        text = text[len("```json"):].strip()
     if text.endswith("```"):
-        text = text[:-3]
-    return json.loads(text)
+        text = text[:-3].strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Fallback: try to regex the first JSON-like block
+        match = re.search(r"(\[.*\]|\{.*\})", text, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        raise ValueError(f"❌ Could not extract valid JSON from response:\n{text}")
 
 
 def create_amala_finder_agent():
@@ -377,6 +402,11 @@ def ai_agent(message: str, lang: str = None) -> str:
     try:
         response = model.generate_content(text_for_ai)
         ai_response_text = response.text
+
+        try:
+            ai_response_text = safe_extract_json(ai_response_text)
+        except ValueError:
+            ai_response_text = clean_response(ai_response_text)
     except Exception as e:
         print(f"AI model error: {e}")
         ai_response_text = "I'm sorry, I am unable to respond right now."
@@ -393,30 +423,30 @@ def ai_agent(message: str, lang: str = None) -> str:
     return final_response
 
 if __name__ == "__main__":
-   # Test 1: English input, no language specified
-    print("--- Testing English Input ---")
-    message_en = "Hello, how can I help you?"
-    response_en = ai_agent(message_en)
-    print(f"Original: {message_en}")
-    print(f"AI Response: {response_en}\n")
-    # Test 2: Yorùbá input, no language specified
-    print("--- Testing Yorùbá Input ---")
-    message_yo = "Bawo ni e se wa?"
-    response_yo = ai_agent(message_yo)
-    print(f"Original: {message_yo}")
-    print(f"AI Response: {response_yo}\n")
-     # Test 3: German input, explicitly specify French output
-    print("--- Testing Explicit Language ---")
-    message_de = "Hallo, wie geht es dir?"
-    # Here, we're forcing the translation to French ('fr')
-    response_fr = ai_agent(message_de, lang='ge')
-    print(f"Original: {message_de}")
-    print(f"AI Response: {response_fr}\n")
+    asyncio.run(run_day_trip_genie()) 
+    asyncio.run(run_sequential_app())
+    asyncio.run(iterative_planner_agent())
+#    # Test 1: English input, no language specified
+#     print("--- Testing English Input ---")
+#     message_en = "Hello, how can I help you?"
+#     response_en = ai_agent(message_en)
+#     print(f"Original: {message_en}")
+#     print(f"AI Response: {response_en}\n")
+#     # Test 2: Yorùbá input, no language specified
+#     print("--- Testing Yorùbá Input ---")
+#     message_yo = "Bawo ni e se wa?"
+#     response_yo = ai_agent(message_yo)
+#     print(f"Original: {message_yo}")
+#     print(f"AI Response: {response_yo}\n")
+#      # Test 3: German input, explicitly specify French output
+#     print("--- Testing Explicit Language ---")
+#     message_de = "Hallo, wie geht es dir?"
+#     # Here, we're forcing the translation to French ('fr')
+#     response_fr = ai_agent(message_de, lang='ge')
+#     print(f"Original: {message_de}")
+#     print(f"AI Response: {response_fr}\n")
 
     
 
-# asyncio.run(run_day_trip_genie()) 
-# asyncio.run(run_sequential_app())
-# asyncio.run(iterative_planner_agent())
 
     

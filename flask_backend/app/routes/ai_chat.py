@@ -1,174 +1,282 @@
 from flask import Blueprint, jsonify, request, Flask
-from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
+from flask_cors import CORS
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document
+import traceback
+from datetime import datetime
 
+# Import the wrapped agents
+try:
+    from services.agent_wrapper import (
+        day_trip_agent_sync,
+        router_agent_sync,
+        iterative_planner_agent_sync,
+        worker_agents_sync,
+        ai_agent_sync
+    )
+    agents_imported = True
+    print("✅ Wrapped agents imported successfully!")
+except ImportError as e:
+    print(f"❌ Wrapped agent import error: {e}")
+    # Try importing original agents as fallback
+    try:
+        from services.agent import (
+            ai_agent as ai_agent_sync,
+            day_trip_agent,
+            router_agent,
+            iterative_planner_agent,
+            worker_agents
+        )
+        # These won't work directly but at least we have references
+        day_trip_agent_sync = day_trip_agent
+        router_agent_sync = router_agent
+        iterative_planner_agent_sync = iterative_planner_agent
+        worker_agents_sync = worker_agents
+        agents_imported = False
+        print("⚠️ Using original agents (may not work without wrapper)")
+    except ImportError:
+        agents_imported = False
+        day_trip_agent_sync = None
+        router_agent_sync = None
+        iterative_planner_agent_sync = None
+        worker_agents_sync = {}
+        ai_agent_sync = None
+        print("❌ No agents available")
 
-ai_chatbot_bp = Blueprint('users', __name__)
-from flask import Blueprint, jsonify, request, Flask
-from flask_jwt_extended import jwt_required
-from services.agent import ai_agent
-from ..extensions import mongo_client
-import asyncio
-from services.agent import (worker_agents, router_agent, run_agent_query, session_service, my_user_id, day_trip_agent,iterative_planner_agent)
-from flask_cors import CORS # Import CORS
-from services.agent import ai_agent
-from crewai import Crew, Process, Task, Agent
-
+# Create Flask app and blueprints
 app = Flask(__name__)
-
-#enable cors for all routes
 CORS(app)
-ai_chatbot_bp = Blueprint('ai_chatbot_bp', __name__)
-navigate_bp = Blueprint('navigate_bp', __name__)
-amala_finder_bp = Blueprint('amala_finder_bp', __name__)
-planner_bp = Blueprint('planner_bp', __name__)
 
+ai_chatbot_bp = Blueprint('ai_chatbot', __name__, url_prefix='/api/ai')
+navigate_bp = Blueprint('navigate', __name__, url_prefix='/api/navigate')
+amala_finder_bp = Blueprint('amala_finder', __name__, url_prefix='/api/ai')  # Match your URL structure
+planner_bp = Blueprint('planner', __name__, url_prefix='/api/planner')
 
+def safe_agent_response(response):
+    """
+    Safely process agent responses, handling both strings and dicts
+    """
+    if isinstance(response, dict):
+        # If it's already a dict, return as is
+        return response
+    elif isinstance(response, str):
+        # If it's a string that looks like JSON, try to parse it
+        response_text = response.strip()
+        if (response_text.startswith('[') and response_text.endswith(']')) or \
+           (response_text.startswith('{') and response_text.endswith('}')):
+            try:
+                import json
+                return json.loads(response_text)
+            except json.JSONDecodeError:
+                pass
+        # Return as string if not JSON
+        return response
+    else:
+        # Convert other types to string
+        return str(response)
 
-ai_chatbot_bp = Blueprint('ai_chatbot_bp', __name__)
-navigate_bp = Blueprint('navigate_bp', __name__)
-amala_finder_bp = Blueprint('amala_finder_bp', __name__)
-planner_bp = Blueprint('planner_bp', __name__)
-
-
-# AI Chatbot Blueprint
+# AI Chatbot routes
 @ai_chatbot_bp.get('/ask/')
 @jwt_required()
 def list_users():
-    """Returns a success response for listing users."""
     return jsonify({'success': True, 'data': "response"}), 200
 
 @ai_chatbot_bp.post('/chat')
 def chat():
-    """Handles chatbot queries and returns a response from the AI agent."""
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
-    
-    message = data.get('message')
-    lang = data.get('lang')
-    
-    if not message:
-        return jsonify({"error": "No message provided"}), 400
-
     try:
-        ai_response = ai_agent(message, lang)
-        return jsonify({"response": ai_response}), 200
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        message = data.get('message')
+        lang = data.get('lang', 'en')
+        
+        if not message:
+            return jsonify({"error": "No message provided"}), 400
+        
+        if not agents_imported or ai_agent_sync is None:
+            return jsonify({"error": "AI agent service unavailable"}), 503
+        
+        # Call the AI agent function
+        ai_response = ai_agent_sync(message, lang)
+        
+        return jsonify({"success": True, "response": ai_response})
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"Chat service error: {str(e)}",
+            "traceback": traceback.format_exc()
+        }), 500
 
-
-# Navigation Blueprint
+# Navigation routes
 @navigate_bp.post('/navigate')
 def navigate_to_place():
-    """Navigates to a place based on a query using a router and worker agents."""
-    data = request.get_json()
-    query = data.get('query')
-
-    if not query:
-        return jsonify({"error": "Query is required"}), 400
-    
     try:
-        # Assumes router_agent.run() exists as it's not the LlmAgent
-        chosen_route = router_agent.run(query) 
+        data = request.get_json()
         
-        if chosen_route in worker_agents:
-            worker_agent = worker_agents[chosen_route]
-            final_response = worker_agent.run(query)
-            return jsonify({"success": True, "data": final_response}), 200
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        query = data.get('query')
+        
+        if not query:
+            return jsonify({"error": "Query is required"}), 400
+        
+        if not agents_imported or router_agent_sync is None or not worker_agents_sync:
+            return jsonify({"error": "Navigation service unavailable"}), 503
+        
+        # Get route choice from router agent
+        chosen_route_response = router_agent_sync.run(query)
+        
+        # Extract the route name from the response
+        if isinstance(chosen_route_response, str):
+            chosen_route = chosen_route_response.strip().replace("'", "").replace('"', '')
         else:
-            return jsonify({"error": "No suitable agent found"}), 404
+            chosen_route = str(chosen_route_response)
+        
+        print(f"🚦 Router chose: '{chosen_route}'")
+        
+        # Execute the chosen worker agent
+        if chosen_route in worker_agents_sync:
+            worker_agent = worker_agents_sync[chosen_route]
+            final_response = worker_agent.run(query)
+            processed_response = safe_agent_response(final_response)
+            return jsonify({"success": True, "data": processed_response})
+        else:
+            return jsonify({
+                "error": "No suitable agent found",
+                "chosen_route": chosen_route,
+                "available_routes": list(worker_agents_sync.keys())
+            }), 404
+            
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"Navigation service error: {str(e)}",
+            "traceback": traceback.format_exc()
+        }), 500
 
-
-# Amala Finder Blueprint
+# Amala finder routes
 @amala_finder_bp.post('/amala_finder')
 def find_amala():
-    """
-    Finds places to get 'amala' using the day_trip_agent.
-    Corrected to use the CrewAI framework kickoff method.
-    """
-    data = request.get_json()
-    user_location = data.get('location')  # e.g., {"lat": 6.5244, "long": 3.3792}
-    query = data.get('query')
-
-    if not user_location or not query:
-        return jsonify({"error": "Location and query are required"}), 400
-
     try:
-        # Define a task for the day_trip_agent
-        find_amala_task = Task(
-            description=f"Find the best places to get amala near {user_location} based on the user's query: '{query}'.",
-            expected_output="A list of the best 'amala' spots in JSON format.",
-            agent=day_trip_agent
-        )
-
-        # Create a crew with the agent and task
-        amala_crew = Crew(
-            agents=[day_trip_agent],
-            tasks=[find_amala_task],
-            process=Process.sequential,
-        )
-
-        # Run the crew to execute the task
-        amala_spots_data = amala_crew.kickoff()
+        data = request.get_json()
         
-        return jsonify({"success": True, "data": amala_spots_data}), 200
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        user_location = data.get('location')
+        query = data.get('query')
+        
+        if not user_location or not query:
+            return jsonify({"error": "Location and query are required"}), 400
+        
+        # Validate location format
+        if not isinstance(user_location, dict) or 'lat' not in user_location or 'long' not in user_location:
+            return jsonify({"error": "Invalid location format. Expected: {'lat': float, 'long': float}"}), 400
+        
+        if not agents_imported or day_trip_agent_sync is None:
+            return jsonify({
+                "error": "Amala finder service unavailable",
+                "fallback_data": {
+                    "spots": [
+                        {
+                            "id": "fallback_1",
+                            "name": "Mama Cass Amala",
+                            "address": "Victoria Island, Lagos",
+                            "rating": 4.5,
+                            "price_range": "moderate"
+                        }
+                    ]
+                }
+            }), 503
+        
+        print(f"🍲 Processing amala finder query: '{query}' at location: {user_location}")
+        
+        # Enhance the query with location information
+        enhanced_query = f"Find Amala spots near coordinates: {user_location['lat']}, {user_location['long']}. User query: {query}"
+        
+        # Call the day trip agent (amala finder)
+        amala_spots_data = day_trip_agent_sync.run(enhanced_query)
+        
+        # Process the response
+        processed_data = safe_agent_response(amala_spots_data)
+        
+        print(f"✅ Amala finder response: {type(processed_data)}")
+        
+        return jsonify({
+            "success": True, 
+            "data": processed_data,
+            "query": query,
+            "location": user_location
+        })
+        
     except Exception as e:
-        return jsonify({"error": f"Failed to run amala finder agent: {str(e)}"}), 500
+        return jsonify({
+            "error": f"Failed to run amala finder agent: {str(e)}",
+            "traceback": traceback.format_exc(),
+            "debug_info": {
+                "agent_available": day_trip_agent_sync is not None,
+                "agents_imported": agents_imported
+            }
+        }), 500
 
-
-# Planner Blueprint
+# Planner routes
 @planner_bp.post('/plan')
 def plan_activity():
-    """
-    Plans an activity using the iterative_planner_agent.
-    Corrected to use the CrewAI framework kickoff method.
-    """
-    data = request.get_json()
-    query = data.get('query')
-
-    if not query:
-        return jsonify({"error": "Query is required"}), 400
-    
     try:
-        # Define a task for the planner agent
-        planning_task = Task(
-            description=f"Create a detailed plan for the activity based on the user's query: '{query}'.",
-            expected_output="A comprehensive plan in a structured text format.",
-            agent=iterative_planner_agent
-        )
-
-        # Create a crew with the planner agent and task
-        planner_crew = Crew(
-            agents=[iterative_planner_agent],
-            tasks=[planning_task],
-            process=Process.sequential
-        )
-
-        # Run the crew to execute the task
-        final_plan_data = planner_crew.kickoff()
+        data = request.get_json()
         
-        return jsonify({"success": True, "data": final_plan_data}), 200
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+        
+        query = data.get('query')
+        
+        if not query:
+            return jsonify({"error": "Query is required"}), 400
+        
+        if not agents_imported or iterative_planner_agent_sync is None:
+            return jsonify({"error": "Planner service unavailable"}), 503
+        
+        print(f"📅 Processing planner query: '{query}'")
+        
+        # Call the iterative planner agent
+        final_plan_data = iterative_planner_agent_sync.run(query)
+        
+        # Process the response
+        processed_data = safe_agent_response(final_plan_data)
+        
+        return jsonify({"success": True, "data": processed_data})
+        
     except Exception as e:
-        return jsonify({"error": f"Failed to run planning agent: {str(e)}"}), 500
+        return jsonify({
+            "error": f"Planner service error: {str(e)}",
+            "traceback": traceback.format_exc()
+        }), 500
+    
+    
+
+# Debug endpoint
+@app.route('/debug/agents')
+def debug_agents():
+    """Debug endpoint to check agent status"""
+    return jsonify({
+        "agents_imported": agents_imported,
+        "ai_agent_available": ai_agent_sync is not None,
+        "day_trip_agent_available": day_trip_agent_sync is not None,
+        "router_agent_available": router_agent_sync is not None,
+        "iterative_planner_available": iterative_planner_agent_sync is not None,
+        "worker_agents_count": len(worker_agents_sync) if worker_agents_sync else 0,
+        "worker_agent_keys": list(worker_agents_sync.keys()) if worker_agents_sync else []
+    })
 
 
-# hey victor
-# this is just a comment to help you create endpoints
-# if you want to create a new route, start by creating a new file in the same folder as this one
 
-# then, create a bluePrint - this is just like the api router in FAST API
-# blueprint_name = Blueprint('route_name', __name__) 
+# Health check endpoint
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy", "message": "API is running"}), 200
 
-# to create an endpoint 
-# use the blueprint decorator to call an api method [GET, POST, PUT, ...OTHERS]
-# if you want to make the endpoint secure by expecting an access Token from the from the frontend
-
-# if you want to make the endpoint secure by expecting an access Token from the frontend
-# continue with the @jwt_required() decorator before calling the api function
-#  then create the api function
-# then do your logic and return a valid response conditionally or not.
+if __name__ == '__main__':
+    app.run(debug=True)
