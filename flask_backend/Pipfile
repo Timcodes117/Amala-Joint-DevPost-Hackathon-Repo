@@ -11,11 +11,11 @@ gunicorn = "*"
 google-adk = "*"
 google-generativeai = "*"
 flask = ">=3.0.0"
-flask-cors = "*"
 flask-jwt-extended = "*"
 pymongo = "*"
 python-dotenv = "*"
 google-cloud-translate = "==2.0.1"
+flask-cors = "*"
 
 [dev-packages]
 

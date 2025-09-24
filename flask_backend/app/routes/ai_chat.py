@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, FLASK
 from flask_jwt_extended import jwt_required
 from services.agent import process_text
 from ..extensions import mongo_client
@@ -6,10 +6,19 @@ from ..utils.mongo import serialize_document
 from helpers.agent_query import run_agent_query
 import asyncio
 from google.adk.sessions import SessionService
-from services.agent import (run_day_trip_genie, run_sequential_app, iterative_planner_agent)
+from services.agent import (worker_agents, router_agent, run_agent_query, session_service, my_user_id, day_trip_agent,iterative_planner_agent)
+from flask_cors import CORS # Import CORS
+from services.agent import ai_agent
 
+app = FLASK(__name__)
 
+#enable cors for all routes
+CORS(app)
 ai_chatbot_bp = Blueprint('users', __name__)
+navigate_bp = Blueprint('navigate_bp', __name__)
+amala_finder_bp = Blueprint('amala_finder_bp', __name__)
+planner_bp = Blueprint('planner_bp', __name__)
+
 
 
 @ai_chatbot_bp.get('/ask/')
@@ -17,29 +26,63 @@ ai_chatbot_bp = Blueprint('users', __name__)
 def list_users():
     return jsonify({'success': True, 'data': "respones"}), 200
 
-@ai_chatbot_bp("/translate", methods=["POST"])
-def translate():
-    data = request.get_json()
-    text = data.get("text", "")
-    lang = data.get("lang", "en")  # default to English
-
-    translated = process_text(text, lang)
-    return jsonify({
-        "original": text,
-        "translated": translated,
-        "target_lang": lang
-    })
-
 @ai_chatbot_bp.post('/chat')
-@jwt_required()
 def chat():
-    data = request.get_json() or {}
-    message = data.get('message', '')
+    
+    data = request.get_json() 
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+    message = data.get('message')
+    lang = data.get('lang')
     if not message:
-        return jsonify({'success': False, 'error': 'Message is required'}), 400
+        return jsonify({"error": "No message provided"}), 400
 
-    response = process_text(message)
-    return jsonify({'success': True, 'response': response}), 200
+    ai_response = ai_agent(message, lang)
+    return jsonify({"response": ai_response})
+
+@navigate_bp.post('/navigate')
+def navigate_to_place():
+    data = request.get_json()
+    query = data.get('query')
+
+    if not query:
+        return jsonify({"error": "Query is required"}), 400
+    
+    chosen_route = router_agent.run(query) 
+    
+    if chosen_route in worker_agents:
+        worker_agent = worker_agents[chosen_route]
+        final_response = worker_agent.run(query)
+        return jsonify({"success": True, "data": final_response})
+    else:
+        return jsonify({"error": "No suitable agent found"}), 404
+    
+@amala_finder_bp.post('/amala_finder')
+def find_amala():
+    data = request.get_json()
+    user_location = data.get('location') # e.g., {"lat": 6.5244, "long": 3.3792}
+    query = data.get('query')
+
+    if not user_location or not query:
+        return jsonify({"error": "Location and query are required"}), 400
+
+    amala_spots_data = day_trip_agent.run(query) 
+
+    return jsonify({"success": True, "data": amala_spots_data})
+
+@planner_bp.post('/plan')
+def plan_activity():
+    data = request.get_json()
+    query = data.get('query')
+
+    if not query:
+        return jsonify({"error": "Query is required"}), 400
+    
+    final_plan_data = iterative_planner_agent.run(query)
+    
+    return jsonify({"success": True, "data": final_plan_data})
+    
+
 
 
 
