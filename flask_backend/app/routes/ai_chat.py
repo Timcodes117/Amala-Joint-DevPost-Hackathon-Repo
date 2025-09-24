@@ -66,6 +66,7 @@ ai_chatbot_bp = Blueprint('ai_chatbot', __name__, url_prefix='/api/ai')
 navigate_bp = Blueprint('navigate', __name__, url_prefix='/api/navigate')
 amala_finder_bp = Blueprint('amala_finder', __name__, url_prefix='/api/ai')  # Match your URL structure
 planner_bp = Blueprint('planner', __name__, url_prefix='/api/planner')
+amala_ai_bp = Blueprint('amala_ai', __name__, url_prefix='/api/veirfystore')
 
 def safe_agent_response(response):
     """
@@ -196,52 +197,68 @@ def find_amala():
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
         
-        user_location = data.get('location')
+        user_location = data.get('location')   # can be {lat, long} OR address string
         query = data.get('query')
         
         if not user_location or not query:
             return jsonify({"error": "Location and query are required"}), 400
         
-        # Validate location format
-        if not isinstance(user_location, dict) or 'lat' not in user_location or 'long' not in user_location:
-            return jsonify({"error": "Invalid location format. Expected: {'lat': float, 'long': float}"}), 400
-        
-        if not agents_imported or day_trip_agent_sync is None:
-            return jsonify({
-                "error": "Amala finder service unavailable",
-                "fallback_data": {
-                    "spots": [
-                        {
-                            "id": "fallback_1",
-                            "name": "Mama Cass Amala",
-                            "address": "Victoria Island, Lagos",
-                            "rating": 4.5,
-                            "price_range": "moderate"
-                        }
-                    ]
+        location_details = {}
+
+        # ---- If coordinates provided ----
+        if isinstance(user_location, dict) and 'lat' in user_location and 'long' in user_location:
+            lat, lng = user_location['lat'], user_location['long']
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={os.getenv('GOOGLE_API_KEY')}"
+            geo_response = request.get(geocode_url).json()
+            if geo_response.get("status") == "OK" and geo_response.get("results"):
+                result = geo_response["results"][0]
+                location_details = {
+                    "lat": lat,
+                    "long": lng,
+                    "formatted_address": result.get("formatted_address"),
+                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
+                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
                 }
-            }), 503
-        
-        print(f"🍲 Processing amala finder query: '{query}' at location: {user_location}")
-        
-        # Enhance the query with location information
-        enhanced_query = f"Find Amala spots near coordinates: {user_location['lat']}, {user_location['long']}. User query: {query}"
-        
+
+        # ---- If address provided ----
+        elif isinstance(user_location, str):
+            address = user_location
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={os.getenv('GOOGLE_API_KEY')}"
+            geo_response = request.get(geocode_url).json()
+            if geo_response.get("status") == "OK" and geo_response.get("results"):
+                result = geo_response["results"][0]
+                location_details = {
+                    "lat": result["geometry"]["location"]["lat"],
+                    "long": result["geometry"]["location"]["lng"],
+                    "formatted_address": result.get("formatted_address"),
+                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
+                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                }
+
+        else:
+            return jsonify({"error": "Invalid location format. Provide lat/long or address string."}), 400
+
+        # ---- Enhance query with geocoded details ----
+        enhanced_query = f"Find Amala spots in {location_details.get('city')}, {location_details.get('state')}, {location_details.get('country')}. User query: {query}"
+
+        if not agents_imported or day_trip_agent_sync is None:
+            return jsonify({"error": "Amala finder service unavailable"}), 503
+
         # Call the day trip agent (amala finder)
         amala_spots_data = day_trip_agent_sync.run(enhanced_query)
         
-        # Process the response
         processed_data = safe_agent_response(amala_spots_data)
         
-        print(f"✅ Amala finder response: {type(processed_data)}")
-        
         return jsonify({
-            "success": True, 
+            "success": True,
             "response": processed_data,
             "query": query,
-            "location": user_location
+            "user_location": user_location,
+            "location_details": location_details
         })
-        
+
     except Exception as e:
         return jsonify({
             "error": f"Failed to run amala finder agent: {str(e)}",
@@ -251,6 +268,7 @@ def find_amala():
                 "agents_imported": agents_imported
             }
         }), 500
+
 
 # Planner routes
 @planner_bp.post('/plan')
@@ -284,6 +302,46 @@ def plan_activity():
             "error": f"Planner service error: {str(e)}",
             "traceback": traceback.format_exc()
         }), 500
+    
+@amala_ai_bp.post('/verify-store/')
+def verify_store():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        reason = data.get("Reason")
+        proof_link = data.get("ProofLink")
+        image = data.get("image")  # could be a URL or base64 string
+
+        if not reason or not proof_link or not image:
+            return jsonify({"error": "Reason, ProofLink, and image are required"}), 400
+
+        # Process the verification request here
+        # For example, save it to MongoDB
+        verification_doc = {
+            "reason": reason,
+            "proof_link": proof_link,
+            "image": image,
+            "status": "pending",  # default status
+            "submitted_at": datetime.utcnow()
+        }
+
+        mongo_client.db.store_verifications.insert_one(verification_doc)
+
+        return jsonify({
+            "success": True,
+            "message": "Store verification submitted successfully",
+            "verification_id": str(verification_doc["_id"])
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to submit verification: {str(e)}",
+            "traceback": traceback.format_exc()
+        }), 500
+
+
     
     
 
