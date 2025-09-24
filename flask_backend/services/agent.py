@@ -397,7 +397,7 @@ def translate_text(text, target_lang):
     # This is a placeholder. You need to implement actual translation.
     # For 'yo', it should be a Yoruba translation.
     if target_lang == 'yo':
-        return f"Wọ́n sọ pé: {text}"
+        return {text}"
     else:
         return text
 
