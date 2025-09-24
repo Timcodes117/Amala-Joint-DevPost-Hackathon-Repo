@@ -10,6 +10,11 @@ from .routes.auth import auth_bp
 from .routes.users import users_bp
 from .routes.health import health_bp
 from .routes.ai_chat import ai_chatbot_bp
+from .routes.ai_chat import amala_finder_bp
+from .routes.ai_chat import planner_bp
+from .routes.ai_chat import navigate_bp
+from .routes.ai_chat import amala_ai_bp
+
 
 
 
@@ -30,6 +35,10 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app.register_blueprint(users_bp, url_prefix="/api/users")
     app.register_blueprint(health_bp, url_prefix="/api/health")
     app.register_blueprint(ai_chatbot_bp, url_prefix="/api/ai/")
+    app.register_blueprint(amala_finder_bp, url_prefix="/api/ai/")
+    app.register_blueprint(planner_bp, url_prefix="/api/ai/")
+    app.register_blueprint(navigate_bp, url_prefix="/api/ai/")    
+    app.register_blueprint(amala_ai_bp, url_prefix="/api/ai")
 
     @app.get("/")
     def root():

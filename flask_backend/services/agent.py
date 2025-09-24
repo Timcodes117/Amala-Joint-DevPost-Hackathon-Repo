@@ -4,6 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import requests
 import re
 import asyncio
+
 import json
 # from IPython.display import display, Markdown
 import google.generativeai as genai
@@ -15,18 +16,16 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, Session
 from google.genai.types import Content, Part
 from google.adk.agents import Agent, SequentialAgent, LoopAgent
-<<<<<<< HEAD
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 
-=======
+
 from helpers.translate_helper import translate_text, detect_language
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 # Set up your API key
->>>>>>> b668542b70487461f8af1815c72b440301c720fd
 api_key = 'AIzaSyBIRn4U9-rPQg3bVFWweJR-RLRQhRpngUg'
 
 # Get Your API Key HERE 👉 https://codelabs.developers.google.com/onramp/instructions#0
@@ -38,21 +37,46 @@ model=genai.GenerativeModel("gemini-2.5-flash")
 os.environ['GOOGLE_API_KEY'] = api_key
 
 print("✅ API Key configured successfully! Let the fun begin.")
+def safe_extract_json(text: str):
+    """Ensure the AI response is valid JSON array."""
+    text = text.strip()
+
+    # Remove common Markdown fences
+    if text.startswith("```json"):
+        text = text[len("```json"):].strip()
+    if text.endswith("```"):
+        text = text[:-3].strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise ValueError(f"Invalid JSON returned: {text}")
+
+
 
 def getPlaces(lat, lng) -> list[dict]:
     req = requests.get(f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=4000&keyword=amala&key=AIzaSyA-4CieLYHjaqyxEvxOIBlKVazQtIBc528")
     return req.json();
 
 def extract_json_from_response(response):
-    """Extracts a clean JSON array from agent response text."""
-    text = "".join(part.text for part in response.parts if hasattr(part, "text"))
-    # Remove ```json fences if they exist
-    text = text.strip()
+    """Extracts a clean JSON array/object from agent response text safely."""
+    # Combine all response parts into a single string
+    text = "".join(part.text for part in response.parts if hasattr(part, "text")).strip()
+
+    # Remove Markdown fences
     if text.startswith("```json"):
-        text = text[len("```json"):]
+        text = text[len("```json"):].strip()
     if text.endswith("```"):
-        text = text[:-3]
-    return json.loads(text)
+        text = text[:-3].strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Fallback: try to regex the first JSON-like block
+        match = re.search(r"(\[.*\]|\{.*\})", text, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        raise ValueError(f"❌ Could not extract valid JSON from response:\n{text}")
 
 
 def create_amala_finder_agent():
@@ -348,39 +372,49 @@ print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 
 
 
-<<<<<<< HEAD
+def clean_response(text: str) -> str:
+    # Collapse newlines and extra spaces
+    text = re.sub(r"\s+", " ", text).strip()
+    # Ensure it's concise: only the first sentence if multiple
+    if "." in text:
+        text = text.split(".")[0] + "."
+    return text
 
-if __name__ == "__main__":
-    asyncio.run(run_day_trip_genie()) 
-    asyncio.run(run_sequential_app())
-    asyncio.run(iterative_planner_agent())
-=======
+
 def ai_agent(message: str, lang: str = None) -> str:
     """
-    Handle AI conversation flow with translation support.
-    :param message: The user's message to process.
-    :param lang: Optional target language code for translation (e.g., 'yo', 'en').
+     You're an Amala spot AI.  Handle AI conversation flow with translation support.
+    Guidelines:
+    1. Be concise: one short sentence, no greetings, no signoffs, no line breaks.
+    2. Be accurate.
+    3. Ensure you speak Yoruba fluently
     """
-
-    # Auto-detect input language if not provided
+    # Detect language
     detected_lang = lang if lang else detect_language(message)
     print(f"Detected language: {detected_lang}")
 
-    # Translate message to English (AI thinks in English)
+    # Translate input to English
     text_for_ai = message
     if detected_lang != "en":
-        # Assuming translate_text is a synchronous function
         text_for_ai = translate_text(message, "en")
- # Call the Gemini model to get a real response
+
+    # Call Gemini model
     try:
         response = model.generate_content(text_for_ai)
-        # Extract the text from the response object
         ai_response_text = response.text
+
+        try:
+            ai_response_text = safe_extract_json(ai_response_text)
+        except ValueError:
+            ai_response_text = clean_response(ai_response_text)
     except Exception as e:
-        print(f"An error occurred with the AI model: {e}")
+        print(f"AI model error: {e}")
         ai_response_text = "I'm sorry, I am unable to respond right now."
 
-    # Translate AI response back to user’s language (if not English)
+    # Clean up response
+    ai_response_text = clean_response(ai_response_text)
+
+    # Translate back to user’s language
     if detected_lang != "en":
         final_response = translate_text(ai_response_text, detected_lang)
     else:
@@ -388,46 +422,31 @@ def ai_agent(message: str, lang: str = None) -> str:
 
     return final_response
 
-# --- This section is for demonstration purposes ---
-# (assuming detect_language and translate_text are defined elsewhere)
-# You must have a way to define these functions for the code to run
-def detect_language(text):
-    # This is a placeholder. You need to implement actual language detection.
-    return 'en' # or 'yo' based on text
-
-def translate_text(text, target_lang):
-    # This is a placeholder. You need to implement actual translation.
-    # For 'yo', it should be a Yoruba translation.
-    if target_lang == 'yo':
-        return f"Wọ́n sọ pé: {text}"
-    else:
-        return text
-
 if __name__ == "__main__":
-   # Test 1: English input, no language specified
-    print("--- Testing English Input ---")
-    message_en = "Hello, how can I help you?"
-    response_en = ai_agent(message_en)
-    print(f"Original: {message_en}")
-    print(f"AI Response: {response_en}\n")
-    # Test 2: Yorùbá input, no language specified
-    print("--- Testing Yorùbá Input ---")
-    message_yo = "Bawo ni e se wa?"
-    response_yo = ai_agent(message_yo)
-    print(f"Original: {message_yo}")
-    print(f"AI Response: {response_yo}\n")
-     # Test 3: German input, explicitly specify French output
-    print("--- Testing Explicit Language ---")
-    message_de = "Hallo, wie geht es dir?"
-    # Here, we're forcing the translation to French ('fr')
-    response_fr = ai_agent(message_de, lang='ge')
-    print(f"Original: {message_de}")
-    print(f"AI Response: {response_fr}\n")
+    asyncio.run(run_day_trip_genie()) 
+    asyncio.run(run_sequential_app())
+    asyncio.run(iterative_planner_agent())
+#    # Test 1: English input, no language specified
+#     print("--- Testing English Input ---")
+#     message_en = "Hello, how can I help you?"
+#     response_en = ai_agent(message_en)
+#     print(f"Original: {message_en}")
+#     print(f"AI Response: {response_en}\n")
+#     # Test 2: Yorùbá input, no language specified
+#     print("--- Testing Yorùbá Input ---")
+#     message_yo = "Bawo ni e se wa?"
+#     response_yo = ai_agent(message_yo)
+#     print(f"Original: {message_yo}")
+#     print(f"AI Response: {response_yo}\n")
+#      # Test 3: German input, explicitly specify French output
+#     print("--- Testing Explicit Language ---")
+#     message_de = "Hallo, wie geht es dir?"
+#     # Here, we're forcing the translation to French ('fr')
+#     response_fr = ai_agent(message_de, lang='ge')
+#     print(f"Original: {message_de}")
+#     print(f"AI Response: {response_fr}\n")
 
     
-# asyncio.run(run_day_trip_genie()) 
-# asyncio.run(run_sequential_app())
-# asyncio.run(iterative_planner_agent())
+
 
     
->>>>>>> b668542b70487461f8af1815c72b440301c720fd
