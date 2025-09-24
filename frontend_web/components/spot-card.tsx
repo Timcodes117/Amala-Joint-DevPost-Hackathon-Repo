@@ -75,7 +75,7 @@ function SpotCard({
       {/* Content */}
       <div className="mt-2 w-full">
         <div className="flex items-center justify-between gap-2 w-full mt-3">
-          <b className="text-[18px] sm:text-[20px] text-white font-semibold">{name}</b>
+          <b className="text-[18px] sm:text-[20px] font-semibold">{name}</b>
           <div className="flex items-center gap-1 pry-yellow-color ">
             <Star size={14} className="fill-current" />
             <span className="font-semibold text-sm">{rating.toFixed(2)}</span>

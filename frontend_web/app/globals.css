@@ -201,5 +201,13 @@ body {
 
 .rt-Theme[data-appearance="light"] {
   /* Primary surface color Radix uses for panels/cards */
-  --color-panel: #e5e7eb !important
+  --color-panel: #e5e7eb !important;
+  /* Ensure any components using background token also inherit */
+  --color-background: #e5e7eb !important;
+}
+
+/* Force Radix Themes light background to match app background */
+.rt-Theme[data-appearance="light"][data-has-background="true"],
+.radix-themes[data-appearance="light"][data-has-background="true"] {
+  background-color: #e5e7eb !important;
 }

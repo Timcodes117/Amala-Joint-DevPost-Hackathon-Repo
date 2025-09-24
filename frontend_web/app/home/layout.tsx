@@ -11,6 +11,7 @@ import Head from 'next/head';
 import { TbArrowsLeft, TbArrowsRight } from 'react-icons/tb';
 import { BsQuestion } from 'react-icons/bs';
 import SearchBar from '@/components/search-bar';
+import { SearchResult } from '@/components/search-popover';
 
 const PageHead = () => (
   <Head>
@@ -25,6 +26,19 @@ const PageHead = () => (
 function HomeLayout({children}:{children: React.ReactNode}) {
   const [isFullScreen, setIsFullScreen] = React.useState<boolean>(false);
 
+  const DUMMY: SearchResult[] = React.useMemo(
+    () =>
+      new Array(8).fill(0).map((_, i) => ({
+        id: `spot-${i}`,
+        name: `The Amala Palace ${i + 1}`,
+        distanceKm: 12,
+        etaMinutes: 20,
+        isOpen: true,
+        rating: 4.8,
+        thumbnailUrl: undefined,
+      })),
+    []
+  )
   
 
   return (
@@ -49,7 +63,7 @@ function HomeLayout({children}:{children: React.ReactNode}) {
           </div>
 
         <div className='flex flex-row gap-2 max-w-[500px] w-full' style={{display: isFullScreen ? 'flex' : 'none'}}>
-          <SearchBar data={[]} placeholder='Search for a store' className='w-full' />
+          <SearchBar data={DUMMY} placeholder='Search for a store' className='w-full' />
           </div>
 
         <div onClick={() => setIsFullScreen(!isFullScreen)} className='w-[44px] h-[44px] rounded-full bg-[#1A1A1A] shadow-md md:flex hidden items-center justify-center'>
@@ -60,6 +74,10 @@ function HomeLayout({children}:{children: React.ReactNode}) {
         </div>
         <StoresMap />
       </div>
+      </div>
+      {/* Ensure nested routes like /home/[slug] can mount modals on mobile */}
+      <div className='md:hidden'>
+        {children}
       </div>
       </div>
     </div>
