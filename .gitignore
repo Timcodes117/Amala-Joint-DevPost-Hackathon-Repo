@@ -10,3 +10,6 @@ instance/
 # Next.js stuff
 .next/
 out/
+
+# Backend and API keys
+flask_backend/keys/
