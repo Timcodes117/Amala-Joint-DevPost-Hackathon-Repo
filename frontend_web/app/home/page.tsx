@@ -4,6 +4,7 @@ import SpotCard from '@/components/spot-card'
 import { type SearchResult } from '@/components/search-popover'
 import SearchBar from '@/components/search-bar'
 import React, { useMemo } from 'react'
+import ResultsContainer from '@/components/resultsContainer'
 
 function Page() {
   const DUMMY: SearchResult[] = useMemo(
@@ -43,7 +44,7 @@ function Page() {
       
       <div className='w-full h-full flex-grow flex flex-col overflow-y-scroll csb gap-4'>
         {new Array(5).fill("test").map((_, index) => (
-          <SpotCard
+          <ResultsContainer
             key={index}
             name={`The Amala Joint ${index + 1}`}
             location={'This is where I type the location'}

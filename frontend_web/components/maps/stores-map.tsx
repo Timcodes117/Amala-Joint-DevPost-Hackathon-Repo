@@ -1,8 +1,9 @@
 "use client";
 
-import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
+import { GoogleMap, MarkerF, MarkerClustererF, InfoWindowF, useJsApiLoader } from "@react-google-maps/api";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import SpotCard from "../spot-card";
 
 const containerStyle = {
   width: "100%",
@@ -13,7 +14,7 @@ const containerStyle = {
 const fallbackCenter = { lat: 6.5244, lng: 3.3792 };
 
 // Stable libraries array to avoid reload warning
-const LIBRARIES: ("marker")[] = ["marker"];
+const LIBRARIES: ("marker" | "places")[] = ["marker", "places"];
 
 // Dark map style
 const darkMapStyle = [
@@ -55,6 +56,14 @@ export default function StoresMap() {
 
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
   const [showPopover, setShowPopover] = useState(false);
+  const [selectedStore, setSelectedStore] = useState<{
+    id: string;
+    name: string;
+    position: google.maps.LatLngLiteral;
+  } | null>(null);
+  const [stores, setStores] = useState<
+    { id: string; name: string; position: google.maps.LatLngLiteral }[]
+  >([]);
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
@@ -75,6 +84,37 @@ export default function StoresMap() {
       setUserLocation(fallbackCenter);
     }
   }, []);
+
+  // Fetch nearby stores using Places API when map and user location are ready
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current || !userLocation) return;
+    if (!google.maps.places) return;
+
+    const service = new google.maps.places.PlacesService(mapRef.current);
+    const request: google.maps.places.PlaceSearchRequest = {
+      location: userLocation,
+      radius: 5000, // 5km
+      type: "store",
+      openNow: false,
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+        setStores([]);
+        return;
+      }
+
+      const mapped = results
+        .filter((r): r is google.maps.places.PlaceResult & { geometry: { location: google.maps.LatLng } } => !!r.place_id && !!r.name && !!r.geometry?.location)
+        .map((r) => ({
+          id: r.place_id as string,
+          name: r.name as string,
+          position: { lat: r.geometry!.location.lat(), lng: r.geometry!.location.lng() },
+        }));
+
+      setStores(mapped);
+    });
+  }, [isLoaded, userLocation]);
 
   useEffect(() => {
     if (!mapRef.current || !userLocation) return;
@@ -97,7 +137,8 @@ export default function StoresMap() {
         },
       });
 
-      markerRef.current.addListener("click", () => {
+      markerRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
+        e.stop?.(); // Prevent map click from firing
         setShowPopover((prev) => !prev);
       });
     } else {
@@ -116,7 +157,7 @@ export default function StoresMap() {
     return <p>Error loading map: {loadError.message}</p>;
   }
 
-  if (!isLoaded) return <p>Loading map...</p>;
+  if (!isLoaded) return <div className="w-full h-full flex items-center justify-center">Loading map...</div>;
 
   return (
     <GoogleMap
@@ -126,11 +167,15 @@ export default function StoresMap() {
       onLoad={(map) => {
         mapRef.current = map;
       }}
+      onClick={() => {
+        setSelectedStore(null);
+        setShowPopover(false);
+      }}
       options={{
         styles: currentMapStyle,
-        disableDefaultUI: true,
+        // disableDefaultUI: true  ,
         gestureHandling: "greedy",
-        zoomControl: false,
+        // zoomControl: false,
         mapTypeControl: false,
         scaleControl: false,
         streetViewControl: false,
@@ -140,13 +185,69 @@ export default function StoresMap() {
         backgroundColor: theme === "dark" ? "#212121" : "#f5f5f5",
       }}
     >
+      {/* Clustered store markers */}
+      {stores.length > 0 && (
+        <MarkerClustererF>
+          {(clusterer) => (
+            <>
+              {stores.map((s) => (
+                <MarkerF
+                  key={s.id}
+                  position={s.position}
+                  clusterer={clusterer}
+                  title={s.name}
+                  icon={{
+                    url: "/images/amala_shop.png", 
+                    scaledSize: new google.maps.Size(32, 32),
+                    anchor: new google.maps.Point(16, 32), // Center bottom of image
+                  }}
+                  // shape={google.maps.}
+                  onClick={(e) => {
+                    e.stop?.(); // Prevent map click from firing
+                    setSelectedStore(s);
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </MarkerClustererF>
+      )}
+      {/* Store InfoWindow */}
+      {selectedStore && (
+        <InfoWindowF
+          position={selectedStore.position}
+          onCloseClick={() => setSelectedStore(null)}
+          
+          options={{
+            pixelOffset: new google.maps.Size(0, -32) // Offset by marker height
+          }}
+        >
+          {/* <div style={{ padding: "8px", textAlign: "center" }}> */}
+          <SpotCard
+            key={"index-jey"}
+            name={`The Amala Joint 1`}
+            location={'This is where I type the location'}
+            opensAt={'8:00'}
+            closesAt={'21:00'}
+            distanceKm={12}
+            etaMinutes={20}
+            rating={4.8}
+            verified
+            imageUrl={'/images/amala-billboard.png'}
+            onDirections={() => {}}
+            onExplore={() => {}}
+          />
+          {/* </div> */}
+        </InfoWindowF>
+      )}
+      
       {showPopover && userLocation && (
+        <InfoWindowF
+        position={userLocation}
+        onCloseClick={() => setShowPopover(false)}
+      >
         <div
-          style={{
-            position: "absolute",
-            transform: "translate(-50%, -100%)",
-            left: "50%",
-            top: "50%",
+          style={{            
             backgroundColor: "white",
             padding: "10px",
             borderRadius: "10px",
@@ -156,6 +257,7 @@ export default function StoresMap() {
         >
           You are here 🎉
         </div>
+        </InfoWindowF>
       )}
     </GoogleMap>
   );
