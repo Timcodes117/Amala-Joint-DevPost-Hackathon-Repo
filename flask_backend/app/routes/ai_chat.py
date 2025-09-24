@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from flask import Blueprint, jsonify, request, Flask
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
