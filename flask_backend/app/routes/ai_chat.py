@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, Flask
 from flask_jwt_extended import jwt_required
 from flask_cors import CORS
 from ..extensions import mongo_client
+import requests
 from ..utils.mongo import serialize_document
 import os
 import traceback
@@ -209,7 +210,7 @@ def find_amala():
         if isinstance(user_location, dict) and 'lat' in user_location and 'long' in user_location:
             lat, lng = user_location['lat'], user_location['long']
             geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={os.getenv('GOOGLE_API_KEY')}"
-            geo_response = request.get(geocode_url).json()
+            geo_response = requests.get(geocode_url).json()
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
                 location_details = {
@@ -225,7 +226,7 @@ def find_amala():
         elif isinstance(user_location, str):
             address = user_location
             geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={os.getenv('GOOGLE_API_KEY')}"
-            geo_response = request.get(geocode_url).json()
+            geo_response = requests.get(geocode_url).json()
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
                 location_details = {
