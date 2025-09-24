@@ -406,7 +406,7 @@ if __name__ == "__main__":
     print("--- Testing Explicit Language ---")
     message_de = "Hallo, wie geht es dir?"
     # Here, we're forcing the translation to French ('fr')
-    response_fr = ai_agent(message_de, lang='fr')
+    response_fr = ai_agent(message_de, lang='ge')
     print(f"Original: {message_de}")
     print(f"AI Response: {response_fr}\n")
 
