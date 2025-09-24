@@ -20,73 +20,47 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(key_path)
 translate_client = translate.Client()
 
 def translate_text(
-    text: str | bytes | list[str] = "¡Hola amigos y amigas!",
+    text: str | bytes | list[str],
     target_language: str = "en",
     source_language: str | None = None,
-) -> dict:
-    """Translates a given text into the specified target language.
-
-    Find a list of supported languages and codes here:
-    https://cloud.google.com/translate/docs/languages#nmt
-
-    Args:
-        text: The text to translate. Can be a string, bytes or a list of strings.
-              If bytes, it will be decoded as UTF-8.
-        target_language: The ISO 639 language code to translate the text into
-                         (e.g., 'en' for English, 'es' for Spanish).
-        source_language: Optional. The ISO 639 language code of the input text
-                         (e.g., 'fr' for French). If None, the API will attempt
-                         to detect the source language automatically.
-
-    Returns:
-        A dictionary containing the translation results.
-    """
+) -> str:
+    """Translate text into the specified language and return only the translated string."""
 
     from google.cloud import translate_v2 as translate
-
     translate_client = translate.Client()
 
     if isinstance(text, bytes):
-        text = [text.decode("utf-8")]
+        text = text.decode("utf-8")
 
-    if isinstance(text, str):
-        text = [text]
-
-    # If a string is supplied, a single dictionary will be returned.
-    # In case a list of strings is supplied, this method
-    # will return a list of dictionaries.
-
-    # Find more information about translate function here:
-    # https://cloud.google.com/python/docs/reference/translate/latest/google.cloud.translate_v2.client.Client#google_cloud_translate_v2_client_Client_translate
+    # Always pass a list to keep things consistent
     results = translate_client.translate(
-        values=text,
+        values=[text],
         target_language=target_language,
         source_language=source_language
     )
 
-    for result in results:
-        if "detectedSourceLanguage" in result:
-            print(f"Detected source language: {result['detectedSourceLanguage']}")
+    # results is a list of dicts, so we grab the first one
+    result = results[0]
 
-        print(f"Input text: {result['input']}")
-        print(f"Translated text: {result['translatedText']}")
-        print()
+    # Debug logging (optional)
+    print(f"Detected source language: {result.get('detectedSourceLanguage')}")
+    print(f"Input text: {result.get('input')}")
+    print(f"Translated text: {result.get('translatedText')}\n")
 
-    return results
+    return result["translatedText"]  # ✅ Only return string
 
 
-def detect_language(text: str) -> dict:
-    """Detects the text's language of the input text."""
+
+def detect_language(text: str) -> str:
+    """Detect language of the input text and return just the language code."""
     from google.cloud import translate_v2 as translate
-
     translate_client = translate.Client()
 
-    # Text can also be a sequence of strings, in which case this method
-    # will return a sequence of results for each text.
     result = translate_client.detect_language(text)
 
     print(f"Text: {text}")
     print("Confidence: {}".format(result["confidence"]))
     print("Language: {}".format(result["language"]))
 
-    return result
+    return result["language"]  # ✅ Only return language code
+

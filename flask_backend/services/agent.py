@@ -346,60 +346,50 @@ print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 
 
 
+def clean_response(text: str) -> str:
+    # Collapse newlines and extra spaces
+    text = re.sub(r"\s+", " ", text).strip()
+    # Ensure it's concise: only the first sentence if multiple
+    if "." in text:
+        text = text.split(".")[0] + "."
+    return text
 
-
-if __name__ == "__main__":
-    asyncio.run(run_day_trip_genie()) 
-    asyncio.run(run_sequential_app())
-    asyncio.run(iterative_planner_agent())
 
 def ai_agent(message: str, lang: str = None) -> str:
     """
-    Handle AI conversation flow with translation support.
-    :param message: The user's message to process.
-    :param lang: Optional target language code for translation (e.g., 'yo', 'en').
+     You're an Amala spot AI.  Handle AI conversation flow with translation support.
+    Guidelines:
+    1. Be concise: one short sentence, no greetings, no signoffs, no line breaks.
+    2. Be accurate.
+    3. Ensure you speak Yoruba fluently
     """
-
-    # Auto-detect input language if not provided
+    # Detect language
     detected_lang = lang if lang else detect_language(message)
     print(f"Detected language: {detected_lang}")
 
-    # Translate message to English (AI thinks in English)
+    # Translate input to English
     text_for_ai = message
     if detected_lang != "en":
-        # Assuming translate_text is a synchronous function
         text_for_ai = translate_text(message, "en")
- # Call the Gemini model to get a real response
+
+    # Call Gemini model
     try:
         response = model.generate_content(text_for_ai)
-        # Extract the text from the response object
         ai_response_text = response.text
     except Exception as e:
-        print(f"An error occurred with the AI model: {e}")
+        print(f"AI model error: {e}")
         ai_response_text = "I'm sorry, I am unable to respond right now."
 
-    # Translate AI response back to user’s language (if not English)
+    # Clean up response
+    ai_response_text = clean_response(ai_response_text)
+
+    # Translate back to user’s language
     if detected_lang != "en":
         final_response = translate_text(ai_response_text, detected_lang)
     else:
         final_response = ai_response_text
 
     return final_response
-
-# --- This section is for demonstration purposes ---
-# (assuming detect_language and translate_text are defined elsewhere)
-# You must have a way to define these functions for the code to run
-def detect_language(text):
-    # This is a placeholder. You need to implement actual language detection.
-    return 'en' # or 'yo' based on text
-
-def translate_text(text, target_lang):
-    # This is a placeholder. You need to implement actual translation.
-    # For 'yo', it should be a Yoruba translation.
-    if target_lang == 'yo':
-        return "{text}"
-    else:
-        return text
 
 if __name__ == "__main__":
    # Test 1: English input, no language specified
@@ -423,6 +413,7 @@ if __name__ == "__main__":
     print(f"AI Response: {response_fr}\n")
 
     
+
 # asyncio.run(run_day_trip_genie()) 
 # asyncio.run(run_sequential_app())
 # asyncio.run(iterative_planner_agent())

@@ -6,7 +6,7 @@ from ..utils.mongo import serialize_document
 
 
 ai_chatbot_bp = Blueprint('users', __name__)
-from flask import Blueprint, jsonify, request, FLASK
+from flask import Blueprint, jsonify, request, Flask
 from flask_jwt_extended import jwt_required
 from services.agent import ai_agent
 from ..extensions import mongo_client
