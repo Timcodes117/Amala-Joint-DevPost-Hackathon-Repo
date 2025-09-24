@@ -3,8 +3,25 @@ from flask_jwt_extended import jwt_required
 from flask_cors import CORS
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document
+import os
 import traceback
+from dotenv import load_dotenv
+
 from datetime import datetime
+from services.location import LocationService
+# Create Flask app and blueprints
+# Load environment variables from config.env (located outside app folder)
+load_dotenv(dotenv_path="../config.env")
+
+# Initialize Flask
+app = Flask(__name__)
+CORS(app)
+
+# Now set the config values from env
+app.config["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
+
+# Initialize LocationService with the key
+ls = LocationService(app.config["GOOGLE_API_KEY"], 4000)
 
 # Import the wrapped agents
 try:
@@ -16,9 +33,9 @@ try:
         ai_agent_sync
     )
     agents_imported = True
-    print("✅ Wrapped agents imported successfully!")
+    print(" Wrapped agents imported successfully!")
 except ImportError as e:
-    print(f"❌ Wrapped agent import error: {e}")
+    print(f" Wrapped agent import error: {e}")
     # Try importing original agents as fallback
     try:
         from services.agent import (
@@ -34,7 +51,7 @@ except ImportError as e:
         iterative_planner_agent_sync = iterative_planner_agent
         worker_agents_sync = worker_agents
         agents_imported = False
-        print("⚠️ Using original agents (may not work without wrapper)")
+        print(" Using original agents (may not work without wrapper)")
     except ImportError:
         agents_imported = False
         day_trip_agent_sync = None
@@ -42,11 +59,8 @@ except ImportError as e:
         iterative_planner_agent_sync = None
         worker_agents_sync = {}
         ai_agent_sync = None
-        print("❌ No agents available")
+        print(" No agents available")
 
-# Create Flask app and blueprints
-app = Flask(__name__)
-CORS(app)
 
 ai_chatbot_bp = Blueprint('ai_chatbot', __name__, url_prefix='/api/ai')
 navigate_bp = Blueprint('navigate', __name__, url_prefix='/api/navigate')
@@ -120,9 +134,25 @@ def navigate_to_place():
             return jsonify({"error": "Invalid JSON"}), 400
         
         query = data.get('query')
+        location = data.get('location') 
         
         if not query:
             return jsonify({"error": "Query is required"}), 400
+        
+        location_str = ""
+        if isinstance(location, dict):  # {lat, long}
+            lat = location.get("lat")
+            lng = location.get("long")
+            if lat and lng:
+                addr_data = LocationService.get_current_address(lat, lng)
+                if addr_data["status"] == "OK":
+                    location_str = addr_data["results"][0]["formatted_address"]
+        elif isinstance(location, str):  # already human-readable
+            location_str = location
+        
+        # 🔗 Append location to query (if found)
+        if location_str:
+            query = f"{query} near {location_str}"
         
         if not agents_imported or router_agent_sync is None or not worker_agents_sync:
             return jsonify({"error": "Navigation service unavailable"}), 503
@@ -143,7 +173,7 @@ def navigate_to_place():
             worker_agent = worker_agents_sync[chosen_route]
             final_response = worker_agent.run(query)
             processed_response = safe_agent_response(final_response)
-            return jsonify({"success": True, "data": processed_response})
+            return jsonify({"success": True, "response": processed_response})
         else:
             return jsonify({
                 "error": "No suitable agent found",
@@ -207,7 +237,7 @@ def find_amala():
         
         return jsonify({
             "success": True, 
-            "data": processed_data,
+            "response": processed_data,
             "query": query,
             "location": user_location
         })
@@ -247,7 +277,7 @@ def plan_activity():
         # Process the response
         processed_data = safe_agent_response(final_plan_data)
         
-        return jsonify({"success": True, "data": processed_data})
+        return jsonify({"success": True, "response": processed_data})
         
     except Exception as e:
         return jsonify({
