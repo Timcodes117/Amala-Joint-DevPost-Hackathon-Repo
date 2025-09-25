@@ -258,21 +258,22 @@ def find_amala():
                     "lat": lat,
                     "long": lng,
                     "formatted_address": formatted_address,
-                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
-                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
-                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                    "city": next((c["long_name"] for c in result["address_components"] 
+                                  if "locality" in c["types"]), user_location),
+                    "state": next((c["long_name"] for c in result["address_components"] 
+                                   if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] 
+                                     if "country" in c["types"]), None),
                 }
-
-            if geo_response.get("status") == "OK" and geo_response.get("results"):
-                result = geo_response["results"][0]
-                formatted_address = result.get("formatted_address")
+            else:
+                # fallback
                 location_details = {
                     "lat": lat,
                     "long": lng,
-                    "formatted_address": formatted_address,
-                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
-                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
-                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                    "formatted_address": str(user_location),
+                    "city": str(user_location),
+                    "state": None,
+                    "country": None
                 }
 
         # ---- If address provided ----
@@ -285,19 +286,32 @@ def find_amala():
                 result = geo_response["results"][0]
                 formatted_address = result.get("formatted_address")
                 location_details = {
-                    "lat": result["geometry"]["location"]["lat"],
-                    "long": result["geometry"]["location"]["lng"],
+                    "lat": result["geometry"]["location"].get("lat"),
+                    "long": result["geometry"]["location"].get("lng"),
                     "formatted_address": formatted_address,
-                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
-                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
-                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                    "city": next((c["long_name"] for c in result["address_components"] 
+                                  if "locality" in c["types"]), address),
+                    "state": next((c["long_name"] for c in result["address_components"] 
+                                   if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] 
+                                     if "country" in c["types"]), None),
+                }
+            else:
+                # fallback if Google fails
+                location_details = {
+                    "lat": None,
+                    "long": None,
+                    "formatted_address": address,
+                    "city": address,
+                    "state": None,
+                    "country": None
                 }
 
         else:
             return jsonify({"error": "Invalid location format. Provide lat/long or address string."}), 400
 
         # ---- Build concise enhanced query for AI ----
-        location_str = formatted_address or user_location
+        location_str = formatted_address or str(user_location)
         enhanced_query = f"Find Amala spots near {location_str}. User query: {query}"
 
         if not agents_imported or day_trip_agent_sync is None:
