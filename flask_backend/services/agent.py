@@ -21,7 +21,7 @@ from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 
 
-from helpers.translate_helper import translate_text_mymemory, MyMemoryDetectHelper
+from helpers.translate_helper import translate_text_mymemory, detect_language_mymemory
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
