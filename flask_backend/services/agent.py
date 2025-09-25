@@ -415,7 +415,7 @@ class TranslateAgent:
         if detected_lang.startswith("en-GB"):
             source_lang, target_lang = "en-GB", "yo-NG"
         elif detected_lang.startswith("yo-NG"):
-            source_lang, target_lang = "yo-NG", "en-GB"
+            source_lang, target_lang = "yo-NG", "yo-NG"
         else:
             # fallback to defaults
             source_lang, target_lang = self.default_source, self.default_target
