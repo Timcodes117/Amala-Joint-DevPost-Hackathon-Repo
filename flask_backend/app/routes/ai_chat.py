@@ -6,6 +6,7 @@ import requests
 from ..utils.mongo import serialize_document
 import os
 import traceback
+from services.agent import TranslateAgent
 import json
 from dotenv import load_dotenv
 
@@ -69,6 +70,7 @@ navigate_bp = Blueprint('navigate', __name__, url_prefix='/api/navigate')
 amala_finder_bp = Blueprint('amala_finder', __name__, url_prefix='/api/ai')  # Match your URL structure
 planner_bp = Blueprint('planner', __name__, url_prefix='/api/planner')
 amala_ai_bp = Blueprint('amala_ai', __name__, url_prefix='/api/veirfystore')
+translate_bp = Blueprint('translate', __name__, url_prefix='/api/translate')
 
 
 
@@ -98,6 +100,28 @@ def safe_agent_response(response):
 @jwt_required()
 def list_users():
     return jsonify({'success': True, 'data': "response"}), 200
+
+@translate_bp.post("/translate")
+def translate_text():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        text = data.get("text")
+        source_lang = data.get("source_lang", "en")
+        target_lang = data.get("target_lang", "yo")
+
+        if not text:
+            return jsonify({"error": "Text is required"}), 400
+
+        agent = TranslateAgent(source_lang=source_lang, target_lang=target_lang)
+        result = agent.run(text)
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500    
 
 @ai_chatbot_bp.post('/chat')
 def chat():

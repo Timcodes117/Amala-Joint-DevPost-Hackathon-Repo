@@ -5,7 +5,7 @@ import re
 import json
 import asyncio
 # from IPython.display import display, Markdown
-from google.cloud import translate_v2 as translate
+from deep_translator import MyMemoryTranslator
 from getpass import getpass 
 from dotenv import load_dotenv
 
@@ -18,50 +18,45 @@ key_path = os.path.join(os.path.dirname(__file__), "..", "keys", "google-transla
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(key_path)
 
 
-translate_client = translate.Client()
+def translate_text_mymemory(text: str, source_lang: str = "en", target_lang: str = "yo") -> str:
+    """
+    Translate text using MyMemory Translator (via deep-translator).
 
-def translate_text(
-    text: str | bytes | list[str],
-    target_language: str = "en",
-    source_language: str | None = None,
-) -> str:
-    """Translate text into the specified language and return only the translated string."""
+    Args:
+        text (str): The text to translate.
+        source_lang (str): The source language code (default: "en").
+        target_lang (str): The target language code (default: "yo").
 
-    from google.cloud import translate_v2 as translate
-    translate_client = translate.Client()
+    Returns:
+        str: Translated text.
+    """
+    try:
+        translator = MyMemoryTranslator(source=source_lang, target=target_lang)
+        return translator.translate(text)
+    except Exception as e:
+        return f"Translation error: {str(e)}"
 
-    if isinstance(text, bytes):
-        text = text.decode("utf-8")
+class MyMemoryDetectHelper:
+    """
+    Helper for detecting language using MyMemory.
+    """
 
-    # Always pass a list to keep things consistent
-    results = translate_client.translate(
-        values=[text],
-        target_language=target_language,
-        source_language=source_language
-    )
+    def __init__(self, source="auto", target="en"):
+        # Default is auto → en (to let it detect automatically)
+        self.translator = MyMemoryTranslator(source=source, target=target)
 
-    # results is a list of dicts, so we grab the first one
-    result = results[0]
+    def detect_language(self, text: str) -> str:
+        """
+        Detect the source language of the given text.
+        MyMemory detects automatically when source='auto'.
+        """
+        try:
+            translation = self.translator.translate(text)
+            detected_lang = self.translator.source  # The auto-detected language
+            return detected_lang
+        except Exception as e:
+            raise RuntimeError(f"Detection failed: {e}")
+    
 
-    # Debug logging (optional)
-    print(f"Detected source language: {result.get('detectedSourceLanguage')}")
-    print(f"Input text: {result.get('input')}")
-    print(f"Translated text: {result.get('translatedText')}\n")
 
-    return result["translatedText"]  # ✅ Only return string
-
-
-
-def detect_language(text: str) -> str:
-    """Detect language of the input text and return just the language code."""
-    from google.cloud import translate_v2 as translate
-    translate_client = translate.Client()
-
-    result = translate_client.detect_language(text)
-
-    print(f"Text: {text}")
-    print("Confidence: {}".format(result["confidence"]))
-    print("Language: {}".format(result["language"]))
-
-    return result["language"]  # ✅ Only return language code
 

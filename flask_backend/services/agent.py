@@ -21,7 +21,7 @@ from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 
 
-from helpers.translate_helper import translate_text, detect_language
+from helpers.translate_helper import translate_text_mymemory
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
@@ -381,70 +381,56 @@ def clean_response(text: str) -> str:
     return text
 
 
-def ai_agent(message: str, lang: str = None) -> str:
+class TranslateAgent:
     """
      You're an Amala spot AI.  Handle AI conversation flow with translation support.
     Guidelines:
     1. Be concise: one short sentence, no greetings, no signoffs, no line breaks.
     2. Be accurate.
-    3. Ensure you speak Yoruba fluently
+    3. Ensure you switch between both Yoruba and English languages as needed.
+    4. Be prcise about your response 
     """
-    # Detect language
-    detected_lang = lang if lang else detect_language(message)
-    print(f"Detected language: {detected_lang}")
 
-    # Translate input to English
-    text_for_ai = message
-    if detected_lang != "en":
-        text_for_ai = translate_text(message, "en")
+    def __init__(self, source_lang="en", target_lang="yo"):
+        self.source_lang = source_lang
+        self.target_lang = target_lang
 
-    # Call Gemini model
-    try:
-        response = model.generate_content(text_for_ai)
-        ai_response_text = response.text
+    def run(self, text: str) -> dict:
+        """
+        Run the translation process.
+        
+        Args:
+            text (str): Text to be translated.
 
-        try:
-            ai_response_text = safe_extract_json(ai_response_text)
-        except ValueError:
-            ai_response_text = clean_response(ai_response_text)
-    except Exception as e:
-        print(f"AI model error: {e}")
-        ai_response_text = "I'm sorry, I am unable to respond right now."
+        Returns:
+            dict: Translation result.
+        """
+        translated_text = translate_text_mymemory(
+            text=text,
+            source_lang=self.source_lang,
+            target_lang=self.target_lang
+        )
 
-    # Clean up response
-    ai_response_text = clean_response(ai_response_text)
-
-    # Translate back to user’s language
-    if detected_lang != "en":
-        final_response = translate_text(ai_response_text, detected_lang)
-    else:
-        final_response = ai_response_text
-
-    return final_response
+        return {
+            "success": True,
+            "source_lang": self.source_lang,
+            "target_lang": self.target_lang,
+            "original_text": text,
+            "translated_text": translated_text
+        }
 
 if __name__ == "__main__":
-    asyncio.run(run_day_trip_genie()) 
-    asyncio.run(run_sequential_app())
-    asyncio.run(iterative_planner_agent())
-#    # Test 1: English input, no language specified
-#     print("--- Testing English Input ---")
-#     message_en = "Hello, how can I help you?"
-#     response_en = ai_agent(message_en)
-#     print(f"Original: {message_en}")
-#     print(f"AI Response: {response_en}\n")
-#     # Test 2: Yorùbá input, no language specified
-#     print("--- Testing Yorùbá Input ---")
-#     message_yo = "Bawo ni e se wa?"
-#     response_yo = ai_agent(message_yo)
-#     print(f"Original: {message_yo}")
-#     print(f"AI Response: {response_yo}\n")
-#      # Test 3: German input, explicitly specify French output
-#     print("--- Testing Explicit Language ---")
-#     message_de = "Hallo, wie geht es dir?"
-#     # Here, we're forcing the translation to French ('fr')
-#     response_fr = ai_agent(message_de, lang='ge')
-#     print(f"Original: {message_de}")
-#     print(f"AI Response: {response_fr}\n")
+    # asyncio.run(run_day_trip_genie()) 
+    # asyncio.run(run_sequential_app())
+    # asyncio.run(iterative_planner_agent())
+
+    agent = TranslateAgent()
+    result = agent.run("Hello, how are you?")
+    print(result)
+    result = agent.run("Bawo ni, ṣe daadaa ni?")
+    print(result)
+    result = agent.run("Where is the nearest Amala spot?")
+    print(result)
 
     
 
