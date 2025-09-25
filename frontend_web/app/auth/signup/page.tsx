@@ -2,9 +2,14 @@
 
 import InputField from '@/components/input-field'
 import React, { useState } from 'react'
+import { axiosPost } from '@/utils/http/api'
+import { getIdTokenWithPopup } from '@/utils/firebase'
+import { useAuth } from '@/contexts/AuthContext'
+import { ApiResponse, SignupPayload, LoginResponseData } from '@/utils/types'
 
 
 function Page() {
+  const { login: authLogin } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,13 +21,44 @@ function Page() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Login form submitted:', formData)
+    try {
+      const payload: SignupPayload = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        password: formData.password,
+      }
+      const res = await axiosPost('/api/auth/signup', payload)
+      const apiData = res.data as ApiResponse<LoginResponseData>
+      if (apiData.success) {
+        console.log('Signup success:', apiData.data)
+      }
+      alert('Signup successful. Please check your email to verify your account.')
+    } catch (err: any) {
+      const message = err?.response?.data?.error || 'Signup failed'
+      alert(message)
+      console.error('Signup error:', err?.response?.data || err)
+    }
   }
 
-  const handleGoogleAuth = () => {
-    console.log('Google authentication')
+  const handleGoogleAuth = async () => {
+    try {
+      const idToken = await getIdTokenWithPopup()
+      const res = await axiosPost('/api/auth/google', { idToken })
+      const apiData = res.data as ApiResponse<LoginResponseData>
+      if (!apiData.success) throw new Error(apiData.error || 'Google signup failed')
+      const { access_token, refresh_token, user } = apiData.data
+      if (access_token) localStorage.setItem('access_token', access_token)
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token)
+      if (user) localStorage.setItem('user', JSON.stringify(user))
+      authLogin({ access_token, refresh_token }, user)
+      alert('Signed up with Google')
+    } catch (err: any) {
+      const message = err?.response?.data?.error || err?.message || 'Google signup failed'
+      alert(message)
+      console.error('Google signup error:', err?.response?.data || err)
+    }
   }
 
 

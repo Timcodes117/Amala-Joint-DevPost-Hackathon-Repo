@@ -2,17 +2,18 @@ from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required
 from ..extensions import mongo_client
 import requests
-from ..utils.mongo import serialize_document
 import os
 import traceback
 import json
 from dotenv import load_dotenv
+import logging
 
 from datetime import datetime
-from services.location import LocationService
 # Load environment variables from config.env (handled centrally in app __init__,
 # but keep safe fallback for direct module usage)
 load_dotenv(dotenv_path="../config.env")
+
+logger = logging.getLogger(__name__)
 
 # Helper to access Google API key from the running Flask app config
 def get_google_api_key() -> str | None:
@@ -32,9 +33,9 @@ try:
         ai_agent_sync
     )
     agents_imported = True
-    print(" Wrapped agents imported successfully!")
+    logger.info("Wrapped agents imported successfully!")
 except ImportError as e:
-    print(f" Wrapped agent import error: {e}")
+    logger.warning(f"Wrapped agent import error: {e}")
     # Try importing original agents as fallback
     try:
         from services.agent import (
@@ -50,7 +51,7 @@ except ImportError as e:
         iterative_planner_agent_sync = iterative_planner_agent
         worker_agents_sync = worker_agents
         agents_imported = False
-        print(" Using original agents (may not work without wrapper)")
+        logger.warning("Using original agents (may not work without wrapper)")
     except ImportError:
         agents_imported = False
         day_trip_agent_sync = None
@@ -58,7 +59,7 @@ except ImportError as e:
         iterative_planner_agent_sync = None
         worker_agents_sync = {}
         ai_agent_sync = None
-        print(" No agents available")
+        logger.error("No agents available")
 
 
 ai_chatbot_bp = Blueprint('ai_chatbot', __name__)
@@ -69,8 +70,6 @@ amala_ai_bp = Blueprint('amala_ai', __name__)
 
 
 
-import json
-
 def safe_agent_response(response):
     """
          Safely process agent responses, handling both strings and dicts
@@ -80,8 +79,15 @@ def safe_agent_response(response):
     elif isinstance(response, str):
         # strip Markdown JSON formatting like ```json ... ```
         response_text = response.strip()
-        if response_text.startswith("```json"):
-            response_text = response_text[7:].rstrip("```").strip()
+        if response_text.startswith("```"):
+            # Remove starting fence (with optional language like json)
+            first_newline = response_text.find("\n")
+            if first_newline != -1 and response_text[:3] == "```":
+                response_text = response_text[first_newline + 1 :]
+            # Remove trailing fence if present
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
         try:
             return json.loads(response_text)
         except json.JSONDecodeError:
@@ -97,6 +103,7 @@ def list_users():
     return jsonify({'success': True, 'data': "response"}), 200
 
 @ai_chatbot_bp.post('/chat')
+@jwt_required()
 def chat():
     try:
         data = request.get_json()
@@ -119,13 +126,14 @@ def chat():
         return jsonify({"success": True, "response": ai_response})
         
     except Exception as e:
+        current_app.logger.exception("Chat service error")
         return jsonify({
-            "error": f"Chat service error: {str(e)}",
-            "traceback": traceback.format_exc()
+            "error": "Chat service error"
         }), 500
 
 # Navigation routes
 @navigate_bp.post('/navigate')
+@jwt_required()
 def navigate_to_place():
     try:
         data = request.get_json()
@@ -140,11 +148,22 @@ def navigate_to_place():
         location_str = ""
         location_details = {}
 
+        # Ensure Google API key is configured before making requests
+        google_api_key = get_google_api_key()
+        if not google_api_key:
+            return jsonify({"error": "Navigation service unavailable"}), 503
+
         # ---- If coordinates provided ----
-        if isinstance(location, dict) and 'lat' in location and 'long' in location:
-            lat, lng = location['lat'], location['long']
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={get_google_api_key()}"
-            geo_response = requests.get(geocode_url).json()
+        if isinstance(location, dict) and 'lat' in location and ('long' in location or 'lng' in location):
+            lat = location['lat']
+            lng = location.get('long', location.get('lng'))
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={google_api_key}"
+            try:
+                geo_resp = requests.get(geocode_url, timeout=10)
+                geo_resp.raise_for_status()
+                geo_response = geo_resp.json()
+            except requests.RequestException:
+                return jsonify({"error": "Failed to reach geocoding service"}), 503
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
                 location_str = result.get("formatted_address")
@@ -159,8 +178,13 @@ def navigate_to_place():
 
         # ---- If address string provided ----
         elif isinstance(location, str):
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(location)}&key={get_google_api_key()}"
-            geo_response = requests.get(geocode_url).json()
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(location)}&key={google_api_key}"
+            try:
+                geo_resp = requests.get(geocode_url, timeout=10)
+                geo_resp.raise_for_status()
+                geo_response = geo_resp.json()
+            except requests.RequestException:
+                return jsonify({"error": "Failed to reach geocoding service"}), 503
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
                 location_str = result.get("formatted_address")
@@ -197,7 +221,7 @@ def navigate_to_place():
         chosen_route_response = router_agent_sync.run(query)
         chosen_route = str(chosen_route_response).strip().replace("'", "").replace('"', '')
 
-        print(f"🚦 Router chose: '{chosen_route}'")
+        current_app.logger.info(f"Router chose: '{chosen_route}'")
 
         # Execute the chosen worker agent
         if chosen_route in worker_agents_sync:
@@ -213,21 +237,20 @@ def navigate_to_place():
             })
         else:
             return jsonify({
-                "error": "No suitable agent found",
-                "chosen_route": chosen_route,
-                "available_routes": list(worker_agents_sync.keys())
+                "error": "No suitable agent found"
             }), 404
 
     except Exception as e:
+        current_app.logger.exception("Navigation service error")
         return jsonify({
-            "error": f"Navigation service error: {str(e)}",
-            "traceback": traceback.format_exc()
+            "error": "Navigation service error"
         }), 500
 
 
 
 # Amala finder routes
 @amala_finder_bp.post('/amala_finder')
+@jwt_required()
 def find_amala():
     try:
         data = request.get_json()
@@ -242,11 +265,22 @@ def find_amala():
         location_details = {}
         formatted_address = None
 
+        # Ensure Google API key is configured before making requests
+        google_api_key = get_google_api_key()
+        if not google_api_key:
+            return jsonify({"error": "Amala finder service unavailable"}), 503
+
         # ---- If coordinates provided ----
-        if isinstance(user_location, dict) and 'lat' in user_location and 'long' in user_location:
-            lat, lng = user_location['lat'], user_location['long']
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={get_google_api_key()}"
-            geo_response = requests.get(geocode_url).json()
+        if isinstance(user_location, dict) and 'lat' in user_location and ('long' in user_location or 'lng' in user_location):
+            lat = user_location['lat']
+            lng = user_location.get('long', user_location.get('lng'))
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={google_api_key}"
+            try:
+                geo_resp = requests.get(geocode_url, timeout=10)
+                geo_resp.raise_for_status()
+                geo_response = geo_resp.json()
+            except requests.RequestException:
+                return jsonify({"error": "Failed to reach geocoding service"}), 503
 
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
@@ -276,8 +310,13 @@ def find_amala():
         # ---- If address provided ----
         elif isinstance(user_location, str):
             address = user_location
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={get_google_api_key()}"
-            geo_response = requests.get(geocode_url).json()
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={google_api_key}"
+            try:
+                geo_resp = requests.get(geocode_url, timeout=10)
+                geo_resp.raise_for_status()
+                geo_response = geo_resp.json()
+            except requests.RequestException:
+                return jsonify({"error": "Failed to reach geocoding service"}), 503
 
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
@@ -327,13 +366,9 @@ def find_amala():
         })
 
     except Exception as e:
+        current_app.logger.exception("Amala finder service error")
         return jsonify({
-            "error": f"Failed to run amala finder agent: {str(e)}",
-            "traceback": traceback.format_exc(),
-            "debug_info": {
-                "agent_available": day_trip_agent_sync is not None,
-                "agents_imported": agents_imported
-            }
+            "error": "Failed to run amala finder agent"
         }), 500
 
 @amala_ai_bp.post('/verify-store/')
@@ -361,18 +396,18 @@ def verify_store():
             "submitted_at": datetime.utcnow()
         }
 
-        mongo_client.db.store_verifications.insert_one(verification_doc)
+        result = mongo_client.db.store_verifications.insert_one(verification_doc)
 
         return jsonify({
             "success": True,
             "message": "Store verification submitted successfully",
-            "verification_id": str(verification_doc["_id"])
+            "verification_id": str(result.inserted_id)
         }), 201
 
     except Exception as e:
+        current_app.logger.exception("Failed to submit verification")
         return jsonify({
-            "error": f"Failed to submit verification: {str(e)}",
-            "traceback": traceback.format_exc()
+            "error": "Failed to submit verification"
         }), 500
 
 
@@ -381,6 +416,7 @@ def verify_store():
 
 # Optional debug info under AI namespace
 @ai_chatbot_bp.get('/debug/agents')
+@jwt_required()
 def debug_agents():
     return jsonify({
         "agents_imported": agents_imported,
@@ -389,5 +425,5 @@ def debug_agents():
         "router_agent_available": router_agent_sync is not None,
         "iterative_planner_available": iterative_planner_agent_sync is not None,
         "worker_agents_count": len(worker_agents_sync) if worker_agents_sync else 0,
-        "worker_agent_keys": list(worker_agents_sync.keys()) if worker_agents_sync else []
+        # Do not expose exact worker keys in production
     })

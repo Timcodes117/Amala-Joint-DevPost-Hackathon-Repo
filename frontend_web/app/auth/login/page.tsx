@@ -3,9 +3,14 @@
 import InputField from '@/components/input-field'
 import React, { useState } from 'react'
 import ForgotPasswordModal from '@/components/forgot-password-modal'
+import { axiosPost } from '@/utils/http/api'
+import { getIdTokenWithPopup } from '@/utils/firebase'
+import { useAuth } from '@/contexts/AuthContext'
+import { ApiResponse, LoginPayload, LoginResponseData } from '@/utils/types'
 
 
 function Page() {
+  const { login: authLogin } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -15,13 +20,43 @@ function Page() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Login form submitted:', formData)
+    try {
+      const payload: LoginPayload = { email: formData.email, password: formData.password }
+      const res = await axiosPost('/api/auth/login', payload)
+      const apiData = res.data as ApiResponse<LoginResponseData>
+      if (!apiData.success) throw new Error(apiData.error || 'Login failed')
+      const { access_token, refresh_token, user } = apiData.data
+      if (access_token) localStorage.setItem('access_token', access_token)
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token)
+      if (user) localStorage.setItem('user', JSON.stringify(user))
+      console.log('Login success:', user)
+      alert('Logged in successfully')
+    } catch (err: any) {
+      const message = err?.response?.data?.error || 'Login failed'
+      alert(message)
+      console.error('Login error:', err?.response?.data || err)
+    }
   }
 
-  const handleGoogleAuth = () => {
-    console.log('Google authentication')
+  const handleGoogleAuth = async () => {
+    try {
+      const idToken = await getIdTokenWithPopup()
+      const res = await axiosPost('/api/auth/google', { idToken })
+      const apiData = res.data as ApiResponse<LoginResponseData>
+      if (!apiData.success) throw new Error(apiData.error || 'Google login failed')
+      const { access_token, refresh_token, user } = apiData.data
+      if (access_token) localStorage.setItem('access_token', access_token)
+      if (refresh_token) localStorage.setItem('refresh_token', refresh_token)
+      if (user) localStorage.setItem('user', JSON.stringify(user))
+      authLogin({ access_token, refresh_token }, user)
+      alert('Logged in with Google')
+    } catch (err: any) {
+      const message = err?.response?.data?.error || err?.message || 'Google login failed'
+      alert(message)
+      console.error('Google login error:', err?.response?.data || err)
+    }
   }
 
   const [isForgotOpen, setIsForgotOpen] = useState(false)

@@ -6,6 +6,8 @@ from ..utils.mongo import serialize_document, to_object_id
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from flask_mail import Message
 from ..extensions import mail
+import firebase_admin
+from firebase_admin import auth as firebase_auth, credentials as firebase_credentials
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -168,5 +170,89 @@ def verify_email(token: str):
 
     db.users.update_one({'_id': user['_id']}, {'$set': {'email_verified': True, 'updated_at': datetime.utcnow().isoformat()}})
     return jsonify({'success': True, 'message': 'Email verified successfully'}), 200
+
+
+@auth_bp.post('/google')
+def google_login():
+    data = request.get_json() or {}
+    id_token = data.get('idToken') or data.get('id_token')
+    if not id_token:
+        return jsonify({'success': False, 'error': 'idToken is required'}), 400
+
+    try:
+        # Initialize Firebase Admin app lazily
+        if not firebase_admin._apps:
+            # Prefer application default credentials if available
+            try:
+                cred = firebase_credentials.ApplicationDefault()
+            except Exception:
+                cred = firebase_credentials.Certificate({
+                    # Expect env-based service account JSON if provided, else ADC will be used.
+                })
+            firebase_admin.initialize_app(cred)
+
+        payload = firebase_auth.verify_id_token(id_token)
+
+        sub = payload.get('uid') or payload.get('sub')
+        email = payload.get('email')
+        email_verified = payload.get('email_verified', False)
+        name = payload.get('name') or payload.get('given_name')
+        picture = payload.get('picture')
+
+        if not sub or not email:
+            return jsonify({'success': False, 'error': 'Invalid Google token payload'}), 400
+
+        db = mongo_client.get_db()
+        user = db.users.find_one({'email': email})
+        now = datetime.utcnow().isoformat()
+        if not user:
+            user_doc = {
+                'name': name or email.split('@')[0],
+                'email': email,
+                'password': None,
+                'google_uid': sub,
+                'photo_url': picture,
+                'provider': 'google',
+                'created_at': now,
+                'updated_at': now,
+                'is_active': True,
+                'email_verified': True if email_verified else True
+            }
+            result = db.users.insert_one(user_doc)
+            user = user_doc
+            user['_id'] = result.inserted_id
+        else:
+            update = {
+                'google_uid': sub,
+                'photo_url': picture or user.get('photo_url'),
+                'provider': 'google',
+                'email_verified': True if email_verified else True,
+                'updated_at': now,
+            }
+            db.users.update_one({'_id': user['_id']}, {'$set': update})
+            user.update(update)
+
+        user_id = str(user['_id'])
+        access_token = create_access_token(identity=user_id, expires_delta=timedelta(hours=1))
+        refresh_token = create_refresh_token(identity=user_id, expires_delta=timedelta(days=7))
+
+        safe_user = dict(user)
+        safe_user['_id'] = user_id
+        safe_user.pop('password', None)
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'user': safe_user,
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+            }
+        }), 200
+    except firebase_auth.InvalidIdTokenError as e:
+        return jsonify({'success': False, 'error': f'Invalid Firebase token: {str(e)}'}), 400
+    except firebase_auth.ExpiredIdTokenError as e:
+        return jsonify({'success': False, 'error': f'Expired Firebase token: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Google auth failed: {str(e)}'}), 500
 
 

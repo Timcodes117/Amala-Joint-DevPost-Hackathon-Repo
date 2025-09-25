@@ -23,4 +23,7 @@ class Config:
     # Frontend base URL for verification links
     FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://amala-joint.vercel.app')
 
+    # Optional Google OAuth client ID for audience validation
+    GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+
 

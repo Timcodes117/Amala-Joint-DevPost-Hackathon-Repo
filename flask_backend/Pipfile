@@ -18,6 +18,7 @@ python-dotenv = "*"
 google-cloud-translate = "==2.0.1"
 crewai = "*"
 flask-mail = "*"
+firebase-admin = "*"
 
 [dev-packages]
 
