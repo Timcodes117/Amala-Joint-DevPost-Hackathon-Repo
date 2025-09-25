@@ -17,8 +17,9 @@ pymongo = "*"
 python-dotenv = "*"
 google-cloud-translate = "==2.0.1"
 crewai = "*"
+firebase-admin = "<7.0.0"
+google-cloud-storage = "<3.0.0"
 flask-mail = "*"
-firebase-admin = "*"
 
 [dev-packages]
 
