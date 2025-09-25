@@ -120,8 +120,8 @@ def translate_text():
             return jsonify({"error": "Invalid JSON"}), 400
 
         text = data.get("text")
-        source_lang = data.get("source_lang", "en")
-        target_lang = data.get("target_lang", "yo")
+        source_lang = data.get("source_lang", "en-GB")
+        target_lang = data.get("target_lang", "yo-NG")
 
         if not text:
             return jsonify({"error": "Text is required"}), 400
