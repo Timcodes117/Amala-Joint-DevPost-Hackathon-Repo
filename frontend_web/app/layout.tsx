@@ -5,6 +5,8 @@ import "@radix-ui/themes/styles.css";
 import { Theme } from "@radix-ui/themes";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { AppProvider } from "@/contexts/AppContext";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -31,9 +33,13 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <LanguageProvider>
-            <Theme >
-              {children}
-            </Theme>
+            <AuthProvider>
+              <AppProvider>
+                <Theme >
+                  {children}
+                </Theme>
+              </AppProvider>
+            </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

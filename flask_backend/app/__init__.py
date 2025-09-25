@@ -15,6 +15,9 @@ from .routes.ai_chat import planner_bp
 from .routes.ai_chat import navigate_bp
 from .routes.ai_chat import amala_ai_bp
 from .routes.ai_chat import translate_bp
+from .extensions import cors, jwt, mongo_client, init_mongo_indexes, mail
+from .routes import register_blueprints
+
 
 
 
@@ -25,6 +28,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
     cors.init_app(app)
     jwt.init_app(app)
+    mail.init_app(app)
 
     # Initialize Mongo connection
     mongo_client.init_app(app)
@@ -41,6 +45,10 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app.register_blueprint(navigate_bp, url_prefix="/api/ai/")    
     app.register_blueprint(amala_ai_bp, url_prefix="/api/ai")
     app.register_blueprint(translate_bp, url_prefix="/api/translate")
+
+    # Register blueprints centrally
+    register_blueprints(app)
+
 
     @app.get("/")
     def root():

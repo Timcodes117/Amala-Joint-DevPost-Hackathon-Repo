@@ -1,8 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, url_for, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document, to_object_id
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from flask_mail import Message
+from ..extensions import mail
+import firebase_admin
+from firebase_admin import auth as firebase_auth, credentials as firebase_credentials
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -21,6 +26,19 @@ def validate_user_data(data):
     elif len(data['password']) < 6:
         errors['password'] = 'Password must be at least 6 characters long'
     return len(errors) == 0, errors
+
+
+def generate_email_token(email: str) -> str:
+    s = URLSafeTimedSerializer(secret_key='email-verify-secret')
+    return s.dumps(email)
+
+
+def verify_email_token(token: str, max_age_seconds: int = 3600) -> str | None:
+    s = URLSafeTimedSerializer(secret_key='email-verify-secret')
+    try:
+        return s.loads(token, max_age=max_age_seconds)
+    except (BadSignature, SignatureExpired):
+        return None
 
 
 @auth_bp.post('/signup')
@@ -56,9 +74,23 @@ def signup():
     user_doc['_id'] = user_id
     user_doc.pop('password', None)
 
+    # Send verification email
+    try:
+        token = generate_email_token(user_doc['email'])
+        frontend_base = current_app.config.get('FRONTEND_BASE_URL', 'https://amala-joint.vercel.app').rstrip('/')
+        verify_url = f"{frontend_base}/verify-email?token={token}"
+        msg = Message(subject='Verify your Amala account')
+        msg.recipients = [user_doc['email']]
+        msg.body = f"Please verify your account by visiting: {verify_url}"
+        # If you add a template, you can use html instead
+        # msg.html = render_template('email/verify.html', verify_url=verify_url, name=user_doc['name'])
+        mail.send(msg)
+    except Exception:
+        pass
+
     return jsonify({
         'success': True,
-        'message': 'User created successfully',
+        'message': 'User created successfully. Verification email sent if mail is configured.',
         'data': {
             'user': user_doc,
             'access_token': access_token,
@@ -120,5 +152,107 @@ def refresh():
 @jwt_required()
 def verify():
     return jsonify({'success': True, 'message': 'Token is valid', 'user_id': get_jwt_identity()}), 200
+
+
+@auth_bp.get('/verify-email/<token>')
+def verify_email(token: str):
+    db = mongo_client.get_db()
+    email = verify_email_token(token)
+    if not email:
+        return jsonify({'success': False, 'error': 'Invalid or expired verification token'}), 400
+
+    user = db.users.find_one({'email': email})
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    if user.get('email_verified'):
+        return jsonify({'success': True, 'message': 'Email already verified'}), 200
+
+    db.users.update_one({'_id': user['_id']}, {'$set': {'email_verified': True, 'updated_at': datetime.utcnow().isoformat()}})
+    return jsonify({'success': True, 'message': 'Email verified successfully'}), 200
+
+
+@auth_bp.post('/google')
+def google_login():
+    data = request.get_json() or {}
+    id_token = data.get('idToken') or data.get('id_token')
+    if not id_token:
+        return jsonify({'success': False, 'error': 'idToken is required'}), 400
+
+    try:
+        # Initialize Firebase Admin app lazily
+        if not firebase_admin._apps:
+            # Prefer application default credentials if available
+            try:
+                cred = firebase_credentials.ApplicationDefault()
+            except Exception:
+                cred = firebase_credentials.Certificate({
+                    # Expect env-based service account JSON if provided, else ADC will be used.
+                })
+            firebase_admin.initialize_app(cred)
+
+        payload = firebase_auth.verify_id_token(id_token)
+
+        sub = payload.get('uid') or payload.get('sub')
+        email = payload.get('email')
+        email_verified = payload.get('email_verified', False)
+        name = payload.get('name') or payload.get('given_name')
+        picture = payload.get('picture')
+
+        if not sub or not email:
+            return jsonify({'success': False, 'error': 'Invalid Google token payload'}), 400
+
+        db = mongo_client.get_db()
+        user = db.users.find_one({'email': email})
+        now = datetime.utcnow().isoformat()
+        if not user:
+            user_doc = {
+                'name': name or email.split('@')[0],
+                'email': email,
+                'password': None,
+                'google_uid': sub,
+                'photo_url': picture,
+                'provider': 'google',
+                'created_at': now,
+                'updated_at': now,
+                'is_active': True,
+                'email_verified': True if email_verified else True
+            }
+            result = db.users.insert_one(user_doc)
+            user = user_doc
+            user['_id'] = result.inserted_id
+        else:
+            update = {
+                'google_uid': sub,
+                'photo_url': picture or user.get('photo_url'),
+                'provider': 'google',
+                'email_verified': True if email_verified else True,
+                'updated_at': now,
+            }
+            db.users.update_one({'_id': user['_id']}, {'$set': update})
+            user.update(update)
+
+        user_id = str(user['_id'])
+        access_token = create_access_token(identity=user_id, expires_delta=timedelta(hours=1))
+        refresh_token = create_refresh_token(identity=user_id, expires_delta=timedelta(days=7))
+
+        safe_user = dict(user)
+        safe_user['_id'] = user_id
+        safe_user.pop('password', None)
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'user': safe_user,
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+            }
+        }), 200
+    except firebase_auth.InvalidIdTokenError as e:
+        return jsonify({'success': False, 'error': f'Invalid Firebase token: {str(e)}'}), 400
+    except firebase_auth.ExpiredIdTokenError as e:
+        return jsonify({'success': False, 'error': f'Expired Firebase token: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Google auth failed: {str(e)}'}), 500
 
 

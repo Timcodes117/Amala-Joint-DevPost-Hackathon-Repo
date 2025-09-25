@@ -188,3 +188,4 @@ const SavedPosts = () => {
 }
 
 export default SavedPosts
+
