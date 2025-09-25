@@ -176,8 +176,15 @@ def navigate_to_place():
                     "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
                 }
             else:
-                # Fallback to raw string if geocoding fails
+                # Fallback: Use string as formatted address
                 location_str = location
+                location_details = {
+                    "lat": None,
+                    "long": None,
+                    "formatted_address": location_str,
+                    "city": None,
+                    "state": None,
+                }
 
         else:
             return jsonify({"error": "Invalid location format. Provide lat/long or address string."}), 400
@@ -199,7 +206,8 @@ def navigate_to_place():
         if chosen_route in worker_agents_sync:
             worker_agent = worker_agents_sync[chosen_route]
             final_response = worker_agent.run(query)
-            processed_response = safe_agent_response(final_response)
+            
+            processed_response = (safe_agent_response(final_response))
             return jsonify({
                 "success": True,
                 "response": processed_response,
@@ -218,6 +226,7 @@ def navigate_to_place():
             "error": f"Navigation service error: {str(e)}",
             "traceback": traceback.format_exc()
         }), 500
+
 
 
 # Amala finder routes
@@ -241,6 +250,18 @@ def find_amala():
             lat, lng = user_location['lat'], user_location['long']
             geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={app.config['GOOGLE_API_KEY']}"
             geo_response = requests.get(geocode_url).json()
+
+            if geo_response.get("status") == "OK" and geo_response.get("results"):
+                result = geo_response["results"][0]
+                formatted_address = result.get("formatted_address")
+                location_details = {
+                    "lat": lat,
+                    "long": lng,
+                    "formatted_address": formatted_address,
+                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
+                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                }
 
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
