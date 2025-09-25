@@ -18,17 +18,11 @@ key_path = os.path.join(os.path.dirname(__file__), "..", "keys", "google-transla
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.abspath(key_path)
 
 
-def translate_text_mymemory(text: str, source_lang: str = "en", target_lang: str = "yo") -> str:
+from deep_translator import MyMemoryTranslator
+
+def translate_text_mymemory(text: str, source_lang: str = "en-GB", target_lang: str = "yo-NG") -> str:
     """
     Translate text using MyMemory Translator (via deep-translator).
-
-    Args:
-        text (str): The text to translate.
-        source_lang (str): The source language code (default: "en").
-        target_lang (str): The target language code (default: "yo").
-
-    Returns:
-        str: Translated text.
     """
     try:
         translator = MyMemoryTranslator(source=source_lang, target=target_lang)
@@ -36,27 +30,41 @@ def translate_text_mymemory(text: str, source_lang: str = "en", target_lang: str
     except Exception as e:
         return f"Translation error: {str(e)}"
 
+
+def detect_language_mymemory(text: str) -> str:
+    """
+    Detect language using MyMemory's auto-detect capability.
+    Since MyMemory doesn't return explicit detection results,
+    we infer detection by trying 'auto' as source.
+    """
+    try:
+        # Translate text with auto-detect → English
+        translator = MyMemoryTranslator(source="auto", target="en-GB")
+        translated = translator.translate(text)
+
+        # Heuristic:
+        # if translation == original, assume English
+        if translated.strip().lower() == text.strip().lower():
+            return "en-GB"
+        return "yo-NG"  # fallback assumption for Yoruba
+    except Exception as e:
+        return f"Detection error: {str(e)}"
+
 class MyMemoryDetectHelper:
     """
     Helper for detecting language using MyMemory.
     """
 
-    def __init__(self, source="auto", target="en"):
-        # Default is auto → en (to let it detect automatically)
+    def __init__(self, source="auto", target="en-GB"):
         self.translator = MyMemoryTranslator(source=source, target=target)
 
     def detect_language(self, text: str) -> str:
         """
         Detect the source language of the given text.
-        MyMemory detects automatically when source='auto'.
+        Uses detect_language_mymemory under the hood.
         """
-        try:
-            translation = self.translator.translate(text)
-            detected_lang = self.translator.source  # The auto-detected language
-            return detected_lang
-        except Exception as e:
-            raise RuntimeError(f"Detection failed: {e}")
-    
+        return detect_language_mymemory(text)
+
 
 
 
