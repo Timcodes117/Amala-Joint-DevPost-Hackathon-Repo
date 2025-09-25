@@ -326,6 +326,7 @@ def find_amala():
         }), 500
 
 @amala_ai_bp.post('/verify-store/')
+@jwt_required()
 def verify_store():
     try:
         data = request.get_json()
