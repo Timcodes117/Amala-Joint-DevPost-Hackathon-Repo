@@ -6,6 +6,7 @@ import requests
 from ..utils.mongo import serialize_document
 import os
 import traceback
+import json
 from dotenv import load_dotenv
 
 from datetime import datetime
@@ -69,28 +70,28 @@ amala_finder_bp = Blueprint('amala_finder', __name__, url_prefix='/api/ai')  # M
 planner_bp = Blueprint('planner', __name__, url_prefix='/api/planner')
 amala_ai_bp = Blueprint('amala_ai', __name__, url_prefix='/api/veirfystore')
 
+
+
+import json
+
 def safe_agent_response(response):
     """
-    Safely process agent responses, handling both strings and dicts
+         Safely process agent responses, handling both strings and dicts
     """
-    if isinstance(response, dict):
-        # If it's already a dict, return as is
+    if isinstance(response, (dict, list)):
         return response
     elif isinstance(response, str):
-        # If it's a string that looks like JSON, try to parse it
+        # strip Markdown JSON formatting like ```json ... ```
         response_text = response.strip()
-        if (response_text.startswith('[') and response_text.endswith(']')) or \
-           (response_text.startswith('{') and response_text.endswith('}')):
-            try:
-                import json
-                return json.loads(response_text)
-            except json.JSONDecodeError:
-                pass
-        # Return as string if not JSON
-        return response
+        if response_text.startswith("```json"):
+            response_text = response_text[7:].rstrip("```").strip()
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            return {"text": response_text}  # fallback
     else:
-        # Convert other types to string
         return str(response)
+
 
 # AI Chatbot routes
 @ai_chatbot_bp.get('/ask/')
@@ -131,92 +132,123 @@ def chat():
 def navigate_to_place():
     try:
         data = request.get_json()
-        
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
-        
+
         query = data.get('query')
-        location = data.get('location') 
-        
+        location = data.get('location')  # {lat, long} OR address string
         if not query:
             return jsonify({"error": "Query is required"}), 400
-        
+
         location_str = ""
-        if isinstance(location, dict):  # {lat, long}
-            lat = location.get("lat")
-            lng = location.get("long")
-            if lat and lng:
-                addr_data = LocationService.get_current_address(lat, lng)
-                if addr_data["status"] == "OK":
-                    location_str = addr_data["results"][0]["formatted_address"]
-        elif isinstance(location, str):  # already human-readable
-            location_str = location
-        
-        # 🔗 Append location to query (if found)
+        location_details = {}
+
+        # ---- If coordinates provided ----
+        if isinstance(location, dict) and 'lat' in location and 'long' in location:
+            lat, lng = location['lat'], location['long']
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={app.config['GOOGLE_API_KEY']}"
+            geo_response = requests.get(geocode_url).json()
+            if geo_response.get("status") == "OK" and geo_response.get("results"):
+                result = geo_response["results"][0]
+                location_str = result.get("formatted_address")
+                location_details = {
+                    "lat": lat,
+                    "long": lng,
+                    "formatted_address": location_str,
+                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
+                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                }
+
+        # ---- If address string provided ----
+        elif isinstance(location, str):
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(location)}&key={app.config['GOOGLE_API_KEY']}"
+            geo_response = requests.get(geocode_url).json()
+            if geo_response.get("status") == "OK" and geo_response.get("results"):
+                result = geo_response["results"][0]
+                location_str = result.get("formatted_address")
+                location_details = {
+                    "lat": result["geometry"]["location"]["lat"],
+                    "long": result["geometry"]["location"]["lng"],
+                    "formatted_address": location_str,
+                    "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
+                    "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
+                    "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
+                }
+            else:
+                # Fallback to raw string if geocoding fails
+                location_str = location
+
+        else:
+            return jsonify({"error": "Invalid location format. Provide lat/long or address string."}), 400
+
+        # Append formatted location to query
         if location_str:
             query = f"{query} near {location_str}"
-        
+
         if not agents_imported or router_agent_sync is None or not worker_agents_sync:
             return jsonify({"error": "Navigation service unavailable"}), 503
-        
+
         # Get route choice from router agent
         chosen_route_response = router_agent_sync.run(query)
-        
-        # Extract the route name from the response
-        if isinstance(chosen_route_response, str):
-            chosen_route = chosen_route_response.strip().replace("'", "").replace('"', '')
-        else:
-            chosen_route = str(chosen_route_response)
-        
+        chosen_route = str(chosen_route_response).strip().replace("'", "").replace('"', '')
+
         print(f"🚦 Router chose: '{chosen_route}'")
-        
+
         # Execute the chosen worker agent
         if chosen_route in worker_agents_sync:
             worker_agent = worker_agents_sync[chosen_route]
             final_response = worker_agent.run(query)
             processed_response = safe_agent_response(final_response)
-            return jsonify({"success": True, "response": processed_response})
+            return jsonify({
+                "success": True,
+                "response": processed_response,
+                "user_location": location,
+                "location_details": location_details
+            })
         else:
             return jsonify({
                 "error": "No suitable agent found",
                 "chosen_route": chosen_route,
                 "available_routes": list(worker_agents_sync.keys())
             }), 404
-            
+
     except Exception as e:
         return jsonify({
             "error": f"Navigation service error: {str(e)}",
             "traceback": traceback.format_exc()
         }), 500
 
+
 # Amala finder routes
 @amala_finder_bp.post('/amala_finder')
 def find_amala():
     try:
         data = request.get_json()
-        
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
-        
-        user_location = data.get('location')   # can be {lat, long} OR address string
+
+        user_location = data.get('location')  # can be {lat, long} OR address string
         query = data.get('query')
-        
         if not user_location or not query:
             return jsonify({"error": "Location and query are required"}), 400
-        
+
         location_details = {}
+        formatted_address = None
 
         # ---- If coordinates provided ----
         if isinstance(user_location, dict) and 'lat' in user_location and 'long' in user_location:
             lat, lng = user_location['lat'], user_location['long']
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={os.getenv('GOOGLE_API_KEY')}"
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={app.config['GOOGLE_API_KEY']}"
             geo_response = requests.get(geocode_url).json()
+
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
+                formatted_address = result.get("formatted_address")
                 location_details = {
                     "lat": lat,
                     "long": lng,
-                    "formatted_address": result.get("formatted_address"),
+                    "formatted_address": formatted_address,
                     "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
                     "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
                     "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
@@ -225,14 +257,16 @@ def find_amala():
         # ---- If address provided ----
         elif isinstance(user_location, str):
             address = user_location
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={os.getenv('GOOGLE_API_KEY')}"
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={app.config['GOOGLE_API_KEY']}"
             geo_response = requests.get(geocode_url).json()
+
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
+                formatted_address = result.get("formatted_address")
                 location_details = {
                     "lat": result["geometry"]["location"]["lat"],
                     "long": result["geometry"]["location"]["lng"],
-                    "formatted_address": result.get("formatted_address"),
+                    "formatted_address": formatted_address,
                     "city": next((c["long_name"] for c in result["address_components"] if "locality" in c["types"]), None),
                     "state": next((c["long_name"] for c in result["address_components"] if "administrative_area_level_1" in c["types"]), None),
                     "country": next((c["long_name"] for c in result["address_components"] if "country" in c["types"]), None),
@@ -241,17 +275,17 @@ def find_amala():
         else:
             return jsonify({"error": "Invalid location format. Provide lat/long or address string."}), 400
 
-        # ---- Enhance query with geocoded details ----
-        enhanced_query = f"Find Amala spots in {location_details.get('city')}, {location_details.get('state')}, {location_details.get('country')}. User query: {query}"
+        # ---- Build concise enhanced query for AI ----
+        location_str = formatted_address or user_location
+        enhanced_query = f"Find Amala spots near {location_str}. User query: {query}"
 
         if not agents_imported or day_trip_agent_sync is None:
             return jsonify({"error": "Amala finder service unavailable"}), 503
 
-        # Call the day trip agent (amala finder)
+        # Call the day trip agent
         amala_spots_data = day_trip_agent_sync.run(enhanced_query)
-        
         processed_data = safe_agent_response(amala_spots_data)
-        
+
         return jsonify({
             "success": True,
             "response": processed_data,
@@ -270,40 +304,6 @@ def find_amala():
             }
         }), 500
 
-
-# Planner routes
-@planner_bp.post('/plan')
-def plan_activity():
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({"error": "Invalid JSON"}), 400
-        
-        query = data.get('query')
-        
-        if not query:
-            return jsonify({"error": "Query is required"}), 400
-        
-        if not agents_imported or iterative_planner_agent_sync is None:
-            return jsonify({"error": "Planner service unavailable"}), 503
-        
-        print(f"📅 Processing planner query: '{query}'")
-        
-        # Call the iterative planner agent
-        final_plan_data = iterative_planner_agent_sync.run(query)
-        
-        # Process the response
-        processed_data = safe_agent_response(final_plan_data)
-        
-        return jsonify({"success": True, "response": processed_data})
-        
-    except Exception as e:
-        return jsonify({
-            "error": f"Planner service error: {str(e)}",
-            "traceback": traceback.format_exc()
-        }), 500
-    
 @amala_ai_bp.post('/verify-store/')
 def verify_store():
     try:
