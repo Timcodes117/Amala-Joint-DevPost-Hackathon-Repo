@@ -21,7 +21,7 @@ from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 
 
-from helpers.translate_helper import translate_text_mymemory
+from helpers.translate_helper import translate_text_mymemory, MyMemoryDetectHelper
 from getpass import getpass
 from helpers.agent_query import session_service, my_user_id, run_agent_query
 
@@ -383,21 +383,21 @@ def clean_response(text: str) -> str:
 
 class TranslateAgent:
     """
-     You're an Amala spot AI.  Handle AI conversation flow with translation support.
+    You're an Amala spot AI. Handle AI conversation flow with translation support.
     Guidelines:
     1. Be concise: one short sentence, no greetings, no signoffs, no line breaks.
     2. Be accurate.
-    3. Ensure you switch between both Yoruba and English languages as needed.
-    4. Be prcise about your response 
+    3. Ensure you switch between Yoruba and English automatically.
+    4. Be precise about your response.
     """
 
-    def __init__(self, source_lang="en", target_lang="yo"):
-        self.source_lang = source_lang
-        self.target_lang = target_lang
+    def __init__(self, default_source="en-GB", default_target="yo-NG"):
+        self.default_source = default_source
+        self.default_target = default_target
 
     def run(self, text: str) -> dict:
         """
-        Run the translation process.
+        Detect source language and run translation.
         
         Args:
             text (str): Text to be translated.
@@ -405,32 +405,44 @@ class TranslateAgent:
         Returns:
             dict: Translation result.
         """
+        # Detect language of input text
+        detected_lang = detect_language_mymemory(text)
+
+        # Decide translation direction
+        if detected_lang.startswith("en"):
+            source_lang, target_lang = "en-GB", "yo-NG"
+        elif detected_lang.startswith("yo"):
+            source_lang, target_lang = "yo-NG", "en-GB"
+        else:
+            # fallback to defaults
+            source_lang, target_lang = self.default_source, self.default_target
+
+        # Translate
         translated_text = translate_text_mymemory(
             text=text,
-            source_lang=self.source_lang,
-            target_lang=self.target_lang
+            source_lang=source_lang,
+            target_lang=target_lang
         )
 
         return {
             "success": True,
-            "source_lang": self.source_lang,
-            "target_lang": self.target_lang,
+            "detected_lang": detected_lang,
+            "source_lang": source_lang,
+            "target_lang": target_lang,
             "original_text": text,
             "translated_text": translated_text
         }
-
 if __name__ == "__main__":
     # asyncio.run(run_day_trip_genie()) 
     # asyncio.run(run_sequential_app())
     # asyncio.run(iterative_planner_agent())
 
     agent = TranslateAgent()
-    result = agent.run("Hello, how are you?")
-    print(result)
-    result = agent.run("Bawo ni, ṣe daadaa ni?")
-    print(result)
-    result = agent.run("Where is the nearest Amala spot?")
-    print(result)
+    print(agent.run("Hello, how are you?"))  
+    # → Yoruba output
+
+    print(agent.run("Báwo ni o ṣe wa?"))  
+# → English output
 
     
 
