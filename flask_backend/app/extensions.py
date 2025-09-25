@@ -1,11 +1,13 @@
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail
 from flask import current_app
 from pymongo import MongoClient, ASCENDING
 
 
 cors = CORS()
 jwt = JWTManager()
+mail = Mail()
 
 
 class MongoClientWrapper:

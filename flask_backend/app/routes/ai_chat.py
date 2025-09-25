@@ -1,6 +1,5 @@
-from flask import Blueprint, jsonify, request, Flask
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required
-from flask_cors import CORS
 from ..extensions import mongo_client
 import requests
 from ..utils.mongo import serialize_document
@@ -11,19 +10,17 @@ from dotenv import load_dotenv
 
 from datetime import datetime
 from services.location import LocationService
-# Create Flask app and blueprints
-# Load environment variables from config.env (located outside app folder)
+# Load environment variables from config.env (handled centrally in app __init__,
+# but keep safe fallback for direct module usage)
 load_dotenv(dotenv_path="../config.env")
 
-# Initialize Flask
-app = Flask(__name__)
-CORS(app)
-
-# Now set the config values from env
-app.config["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
-
-# Initialize LocationService with the key
-ls = LocationService(app.config["GOOGLE_API_KEY"], 4000)
+# Helper to access Google API key from the running Flask app config
+def get_google_api_key() -> str | None:
+    try:
+        return current_app.config.get("GOOGLE_API_KEY")
+    except Exception:
+        # Fallback to environment if app context not active
+        return os.getenv("GOOGLE_API_KEY")
 
 # Import the wrapped agents
 try:
@@ -64,11 +61,11 @@ except ImportError as e:
         print(" No agents available")
 
 
-ai_chatbot_bp = Blueprint('ai_chatbot', __name__, url_prefix='/api/ai')
-navigate_bp = Blueprint('navigate', __name__, url_prefix='/api/navigate')
-amala_finder_bp = Blueprint('amala_finder', __name__, url_prefix='/api/ai')  # Match your URL structure
-planner_bp = Blueprint('planner', __name__, url_prefix='/api/planner')
-amala_ai_bp = Blueprint('amala_ai', __name__, url_prefix='/api/veirfystore')
+ai_chatbot_bp = Blueprint('ai_chatbot', __name__)
+navigate_bp = Blueprint('navigate', __name__)
+amala_finder_bp = Blueprint('amala_finder', __name__)
+planner_bp = Blueprint('planner', __name__)
+amala_ai_bp = Blueprint('amala_ai', __name__)
 
 
 
@@ -146,7 +143,7 @@ def navigate_to_place():
         # ---- If coordinates provided ----
         if isinstance(location, dict) and 'lat' in location and 'long' in location:
             lat, lng = location['lat'], location['long']
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={app.config['GOOGLE_API_KEY']}"
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={get_google_api_key()}"
             geo_response = requests.get(geocode_url).json()
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
@@ -162,7 +159,7 @@ def navigate_to_place():
 
         # ---- If address string provided ----
         elif isinstance(location, str):
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(location)}&key={app.config['GOOGLE_API_KEY']}"
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(location)}&key={get_google_api_key()}"
             geo_response = requests.get(geocode_url).json()
             if geo_response.get("status") == "OK" and geo_response.get("results"):
                 result = geo_response["results"][0]
@@ -248,7 +245,7 @@ def find_amala():
         # ---- If coordinates provided ----
         if isinstance(user_location, dict) and 'lat' in user_location and 'long' in user_location:
             lat, lng = user_location['lat'], user_location['long']
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={app.config['GOOGLE_API_KEY']}"
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={get_google_api_key()}"
             geo_response = requests.get(geocode_url).json()
 
             if geo_response.get("status") == "OK" and geo_response.get("results"):
@@ -279,7 +276,7 @@ def find_amala():
         # ---- If address provided ----
         elif isinstance(user_location, str):
             address = user_location
-            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={app.config['GOOGLE_API_KEY']}"
+            geocode_url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={get_google_api_key()}"
             geo_response = requests.get(geocode_url).json()
 
             if geo_response.get("status") == "OK" and geo_response.get("results"):
@@ -382,10 +379,9 @@ def verify_store():
     
     
 
-# Debug endpoint
-@app.route('/debug/agents')
+# Optional debug info under AI namespace
+@ai_chatbot_bp.get('/debug/agents')
 def debug_agents():
-    """Debug endpoint to check agent status"""
     return jsonify({
         "agents_imported": agents_imported,
         "ai_agent_available": ai_agent_sync is not None,
@@ -395,13 +391,3 @@ def debug_agents():
         "worker_agents_count": len(worker_agents_sync) if worker_agents_sync else 0,
         "worker_agent_keys": list(worker_agents_sync.keys()) if worker_agents_sync else []
     })
-
-
-
-# Health check endpoint
-@app.route('/health')
-def health_check():
-    return jsonify({"status": "healthy", "message": "API is running"}), 200
-
-if __name__ == '__main__':
-    app.run(debug=True)

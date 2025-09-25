@@ -1,8 +1,11 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, url_for, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document, to_object_id
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+from flask_mail import Message
+from ..extensions import mail
 
 
 auth_bp = Blueprint('auth', __name__)
@@ -21,6 +24,19 @@ def validate_user_data(data):
     elif len(data['password']) < 6:
         errors['password'] = 'Password must be at least 6 characters long'
     return len(errors) == 0, errors
+
+
+def generate_email_token(email: str) -> str:
+    s = URLSafeTimedSerializer(secret_key='email-verify-secret')
+    return s.dumps(email)
+
+
+def verify_email_token(token: str, max_age_seconds: int = 3600) -> str | None:
+    s = URLSafeTimedSerializer(secret_key='email-verify-secret')
+    try:
+        return s.loads(token, max_age=max_age_seconds)
+    except (BadSignature, SignatureExpired):
+        return None
 
 
 @auth_bp.post('/signup')
@@ -56,9 +72,23 @@ def signup():
     user_doc['_id'] = user_id
     user_doc.pop('password', None)
 
+    # Send verification email
+    try:
+        token = generate_email_token(user_doc['email'])
+        frontend_base = current_app.config.get('FRONTEND_BASE_URL', 'https://amala-joint.vercel.app').rstrip('/')
+        verify_url = f"{frontend_base}/verify-email?token={token}"
+        msg = Message(subject='Verify your Amala account')
+        msg.recipients = [user_doc['email']]
+        msg.body = f"Please verify your account by visiting: {verify_url}"
+        # If you add a template, you can use html instead
+        # msg.html = render_template('email/verify.html', verify_url=verify_url, name=user_doc['name'])
+        mail.send(msg)
+    except Exception:
+        pass
+
     return jsonify({
         'success': True,
-        'message': 'User created successfully',
+        'message': 'User created successfully. Verification email sent if mail is configured.',
         'data': {
             'user': user_doc,
             'access_token': access_token,
@@ -120,5 +150,23 @@ def refresh():
 @jwt_required()
 def verify():
     return jsonify({'success': True, 'message': 'Token is valid', 'user_id': get_jwt_identity()}), 200
+
+
+@auth_bp.get('/verify-email/<token>')
+def verify_email(token: str):
+    db = mongo_client.get_db()
+    email = verify_email_token(token)
+    if not email:
+        return jsonify({'success': False, 'error': 'Invalid or expired verification token'}), 400
+
+    user = db.users.find_one({'email': email})
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    if user.get('email_verified'):
+        return jsonify({'success': True, 'message': 'Email already verified'}), 200
+
+    db.users.update_one({'_id': user['_id']}, {'$set': {'email_verified': True, 'updated_at': datetime.utcnow().isoformat()}})
+    return jsonify({'success': True, 'message': 'Email verified successfully'}), 200
 
 
