@@ -381,6 +381,9 @@ def clean_response(text: str) -> str:
     return text
 
 
+
+
+
 class TranslateAgent:
     """
     You're an Amala spot AI. Handle AI conversation flow with translation support.
@@ -409,9 +412,9 @@ class TranslateAgent:
         detected_lang = detect_language_mymemory(text)
 
         # Decide translation direction
-        if detected_lang.startswith("en"):
+        if detected_lang.startswith("en-GB"):
             source_lang, target_lang = "en-GB", "yo-NG"
-        elif detected_lang.startswith("yo"):
+        elif detected_lang.startswith("yo-NG"):
             source_lang, target_lang = "yo-NG", "en-GB"
         else:
             # fallback to defaults
@@ -424,6 +427,7 @@ class TranslateAgent:
             target_lang=target_lang
         )
 
+
         return {
             "success": True,
             "detected_lang": detected_lang,
@@ -431,6 +435,7 @@ class TranslateAgent:
             "target_lang": target_lang,
             "original_text": text,
             "translated_text": translated_text
+
         }
 if __name__ == "__main__":
     # asyncio.run(run_day_trip_genie()) 
