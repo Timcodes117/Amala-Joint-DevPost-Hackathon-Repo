@@ -2,6 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
+import Image from 'next/image'
 
 interface LogoMarqueeProps {
   logos?: Array<{
@@ -82,7 +83,7 @@ export default function LogoMarquee({
               key={`first-${index}`}
               className="flex-shrink-0 flex items-center justify-center"
             >
-              <img
+              <Image
                 src={logo.src}
                 alt={logo.alt}
                 width={logo.width || 120}
@@ -100,7 +101,7 @@ export default function LogoMarquee({
               key={`second-${index}`}
               className="flex-shrink-0 flex items-center justify-center"
             >
-              <img
+              <Image
                 src={logo.src}
                 alt={logo.alt}
                 width={logo.width || 120}

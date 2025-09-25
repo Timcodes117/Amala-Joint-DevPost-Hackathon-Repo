@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Heart, MapPin, Clock, Star, CheckCircle2 } from 'lucide-react'
+import Link from 'next/link'
 
 export type SpotCardProps = {
   name: string
@@ -30,7 +31,7 @@ function SpotCard({
   verified = false,
   imageUrl,
   isFavorite,
-  onExplore,
+  onExplore: _onExplore,
   onDirections,
   onToggleFavorite,
 }: SpotCardProps) {
@@ -110,12 +111,12 @@ function SpotCard({
           >
             Directions
           </button>
-          <button
-            onClick={onExplore}
-            className="flex-1 h-[40px] rounded-full pry-bg text-white px-4 text-[15px]"
+          <Link
+            href={'/home/spot1'}
+            className="flex-1 flex items-center justify-center h-[40px] rounded-full pry-bg text-white px-4 text-[15px]"
           >
             Explore
-          </button>
+          </Link>
         </div>
       </div>
     </div>

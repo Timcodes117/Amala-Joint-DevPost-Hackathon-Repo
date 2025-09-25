@@ -46,8 +46,10 @@ function Page() {
   }
 
   return (
-    <div className='w-full h-full flex flex-col overflow-hidden'>
-      <ChatHeader title='Amala Bot' avatarUrl='/bot.gif' />
+    <div className='w-full h-full max-h-[80vh] flex flex-col overflow-hidden'>
+      <div className='hidden sm:block'>
+        <ChatHeader title='Amala Bot' avatarUrl='/bot.gif' />
+      </div>
       <div className='flex-1 overflow-y-auto csb px-4 py-6 flex flex-col gap-3'>
         {messages.map((m) => (
           <ChatBubble key={m.id} from={m.from}>

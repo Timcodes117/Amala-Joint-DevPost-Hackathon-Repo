@@ -19,7 +19,7 @@ function ChatInput({ onSend }: ChatInputProps) {
   }
 
   return (
-    <form onSubmit={submit} className='w-full flex items-center gap-2 px-4 py-3 border-t border_1 stick bottom-0'>
+    <form onSubmit={submit} className='w-full flex items-center gap-2 px-4 py-3 border-t border_1 sticky bottom-0'>
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}

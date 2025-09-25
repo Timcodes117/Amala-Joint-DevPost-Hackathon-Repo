@@ -11,7 +11,7 @@ export type SearchBarProps = {
   onSelectResult?: (result: SearchResult) => void
 }
 
-function SearchBar({ data, placeholder = 'Search stops and dishes', className, onSelectResult }: SearchBarProps) {
+function SearchBar({ data, placeholder = 'Search stops and dishes', className }: SearchBarProps) {
   const [query, setQuery] = useState<string>('')
   const [showPopover, setShowPopover] = useState<boolean>(false)
   const wrapRef = useRef<HTMLDivElement | null>(null)
@@ -36,7 +36,7 @@ function SearchBar({ data, placeholder = 'Search stops and dishes', className, o
   return (
     <div ref={wrapRef} className={className}>
       <div className='w-full flex flex-row gap-[12px]'>
-        <div className='w-full h-[44px] bg-gray-100/10 gap-2 rounded-[32px] px-2 flex flex-row items-center'>
+        <div className='w-full h-[44px] bg-gray-100/10 gap-2 backdrop-blur-3xl rounded-[32px] px-2 flex flex-row items-center'>
           <Search size={20} />
           <input
             value={query}

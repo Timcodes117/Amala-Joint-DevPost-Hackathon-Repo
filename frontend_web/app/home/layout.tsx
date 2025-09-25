@@ -1,17 +1,18 @@
 "use client"
-import { Metadata } from 'next';
-import React from 'react'
-import { ChevronsLeft, ChevronsRight, Heart, Store, User2 } from 'lucide-react';
+import React, { Suspense } from 'react'
+import { ChevronsLeft, ChevronsRight } from 'lucide-react';
 import StoresMap from '@/components/maps/stores-map';
 import AppHeader from '@/components/app_header';
 import Link from 'next/link'; 
 import Sidebar from '@/components/sidebar';
 
 import Head from 'next/head';
-import { TbArrowsLeft, TbArrowsRight } from 'react-icons/tb';
 import { BsQuestion } from 'react-icons/bs';
 import SearchBar from '@/components/search-bar';
 import { SearchResult } from '@/components/search-popover';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import StoreForm from '@/components/store_form';
+import VerifyResultsContainer from '@/components/verify-results-container';
 
 const PageHead = () => (
   <Head>
@@ -23,8 +24,14 @@ const PageHead = () => (
   </Head>
 );
 
-function HomeLayout({children}:{children: React.ReactNode}) {
+function HomeLayoutContent({children}:{children: React.ReactNode}) {
   const [isFullScreen, setIsFullScreen] = React.useState<boolean>(false);
+  const [rightView, setRightView] = React.useState<'map' | 'verify'>('map');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isAddMode = searchParams?.get('mode') === 'add';
+  const router = useRouter();
+  const isMobileMap = searchParams?.get('mobileMap') === '1';
 
   const DUMMY: SearchResult[] = React.useMemo(
     () =>
@@ -40,6 +47,14 @@ function HomeLayout({children}:{children: React.ReactNode}) {
     []
   )
   
+  // Initialize/sync right panel view from query param (?view=map|verify)
+  React.useEffect(() => {
+    const viewParam = searchParams?.get('view');
+    if (viewParam === 'map' || viewParam === 'verify') {
+      setRightView(viewParam);
+    }
+  }, [searchParams]);
+
 
   return (
     <div className='w-full h-[100vh] !max-h-[100vh] p-4 flex flex-row gap-4'>
@@ -49,13 +64,62 @@ function HomeLayout({children}:{children: React.ReactNode}) {
       <div className='w-full h-full flex flex-col gap-4 flex-grow min-h-0 overflow-hidden'>
         <AppHeader />
       <div className='w-full h-full flex flex-row gap-4 flex-1 min-h-0 overflow-hidden'>
-      {!isFullScreen && <div className='min-w-[368px] w-[368px] h-full hidden  bg-gray-100/10 rounded-[24px] p-4 overflow-hidden md:flex flex-col flex-1 min-h-0 shadow-md'>
+      {!isFullScreen && <div className='min-w-[368px] w-[368px] md:h-full hidden relative bg_2 rounded-[24px] p-4 md:overflow-hidden md:flex flex-col flex-1 min-h-0 shadow-md'>
       {children}
         {/* <br />
         <br /> */}
       </div>}
 
-      <div className='w-full h-full flex-grow bg_3 rounded-[24px] relative flex flex-col gap-4 overflow-hidden shadow-md'>
+      {pathname === '/home/new' && (
+        <>
+          {/* Desktop and explicit add-mode on mobile: show the form */}
+          <div className='w-full h-full flex-grow bg_3 rounded-[24px] relative md:flex hidden flex-col gap-4 p-4 overflow-hidden shadow-md overflow-y-auto csb'>
+            <StoreForm />
+          </div>
+          {isAddMode && (
+            <div className='w-full h-full flex-grow bg_3 rounded-[24px] relative md:hidden flex flex-col gap-4 p-4 overflow-hidden shadow-md overflow-y-auto csb'>
+              <StoreForm />
+            </div>
+          )}
+          {/* Default on mobile: verify list with CTA to add */}
+          {!isAddMode && (
+            <div className='w-full h-full flex-grow bg_3 rounded-[24px] relative md:hidden flex flex-col gap-4 overflow-hidden shadow-md'>
+              <div className='sticky top-0 z-30 bg_3/80 backdrop-blur px-4 pt-4'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex flex-col'>
+                    <b className='text-[16px] font-semibold'>Unverified Stores near you</b>
+                    <p className='text-sm text-gray-500'>Help keep the list accurate by verifying spots</p>
+                  </div>
+                  <Link href='/home/new?mode=add' className='px-4 py-2 rounded-full pry-bg text-white text-sm whitespace-nowrap'>
+                    Add a Store
+                  </Link>
+                </div>
+                <hr className='border border_1 my-3' />
+              </div>
+              <div className='w-full h-full overflow-y-auto csb px-4 pb-4'>
+                {new Array(8).fill(0).map((_, i) => (
+                  <VerifyResultsContainer
+                    key={`m-verify-${i}`}
+                    name={`Amala Spot ${i + 1}`}
+                    location={'Yaba, Lagos'}
+                    opensAt={'08:00'}
+                    closesAt={'21:00'}
+                    distanceKm={Math.round(2 + Math.random() * 8)}
+                    etaMinutes={Math.round(5 + Math.random() * 20)}
+                    rating={4.5}
+                    verified={i % 2 === 0}
+                    imageUrl={'/images/amala-billboard.png'}
+                    onIgnore={() => {}}
+                    onVerify={() => router.push(`/home/verify/${i + 1}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {pathname !== '/home/new' && (
+        <div className={`w-full h-full flex-grow bg_3 rounded-[24px] relative flex flex-col gap-4 overflow-hidden shadow-md ${isMobileMap ? 'flex md:flex' : 'hidden md:flex'}`}>
         {/* here */}
         <div className='absolute w-full top-0 py-4 flex items-center justify-between px-4 z-30'>
         <div onClick={() => setIsFullScreen(!isFullScreen)} className='w-[44px] h-[44px] rounded-full bg-[#1A1A1A] shadow-md md:flex hidden items-center justify-center'>
@@ -66,22 +130,87 @@ function HomeLayout({children}:{children: React.ReactNode}) {
           <SearchBar data={DUMMY} placeholder='Search for a store' className='w-full' />
           </div>
 
-        <div onClick={() => setIsFullScreen(!isFullScreen)} className='w-[44px] h-[44px] rounded-full bg-[#1A1A1A] shadow-md md:flex hidden items-center justify-center'>
-              <BsQuestion size={20} color='white' />             
-          </div>
+        <div className='flex items-center gap-2'>
+          {/* <div className='hidden md:flex items-center gap-1 bg-[#1A1A1A] rounded-full p-1'>
+            <button
+              onClick={() => setRightView('map')}
+              className={`px-3 py-1 rounded-full text-sm ${rightView === 'map' ? 'bg-white text-black' : 'text-white/80'}`}
+            >
+              Map
+            </button>
+            <button
+              onClick={() => setRightView('verify')}
+              className={`px-3 py-1 rounded-full text-sm ${rightView === 'verify' ? 'bg-white text-black' : 'text-white/80'}`}
+            >
+              Verify
+            </button>
+          </div> */}
+          {/* Close full-screen map on mobile */}
+          {isMobileMap && (
+            <button
+              onClick={() => {
+                const params = new URLSearchParams(searchParams?.toString() || '');
+                params.delete('mobileMap');
+                const query = params.toString();
+                router.push(query ? `${pathname}?${query}` : pathname);
+              }}
+              className='md:hidden px-3 py-2 rounded-full bg-white/90 text-black text-sm flex items-center justify-center '
+            >
+              <ChevronsLeft size={20} className='mr-1' /> Close
+            </button>
+          )}
+          <div onClick={() => setIsFullScreen(!isFullScreen)} className='w-[44px] h-[44px] rounded-full bg-[#1A1A1A] shadow-md md:flex hidden items-center justify-center'>
+                <BsQuestion size={20} color='white' />             
+            </div>
+        </div>
 
 
         </div>
-        <StoresMap />
+        {rightView === 'map' ? (
+          <StoresMap />
+        ) : (
+          <div className='w-full h-full overflow-y-auto csb pt-16 px-4'>
+            {new Array(6).fill(0).map((_, i) => (
+              <VerifyResultsContainer
+                key={`verify-${i}`}
+                name={`Amala Spot ${i + 1}`}
+                location={'Yaba, Lagos'}
+                opensAt={'08:00'}
+                closesAt={'21:00'}
+                distanceKm={Math.round(2 + Math.random() * 8)}
+                etaMinutes={Math.round(5 + Math.random() * 20)}
+                rating={4.5}
+                verified={i % 2 === 0}
+                imageUrl={'/images/amala-billboard.png'}
+                onIgnore={() => {}}
+                onVerify={() => router.push(`/home/verify/${i + 1}`)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+      )}
       </div>
       {/* Ensure nested routes like /home/[slug] can mount modals on mobile */}
-      <div className='md:hidden'>
-        {children}
-      </div>
+      {pathname !== '/home/new' && !isMobileMap && (
+        <div className='md:hidden w-full h-full flex-1 min-h-full overflow-y-auto csb relative'>
+          {children}
+          <br />
+          <br />
+          <br />
+        </div>
+      )}
       </div>
     </div>
   )
 }
 
-export default HomeLayout
+function HomeLayoutWrapper({children}:{children: React.ReactNode}) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeLayoutContent>{children}</HomeLayoutContent>
+    </Suspense>
+  )
+}
+
+export default HomeLayoutWrapper
