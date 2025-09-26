@@ -12,7 +12,7 @@ print("✅ sys.path updated")
 
 # Create a minimal Flask app first to ensure Gunicorn can find it
 from flask import Flask
-print("✅ Flask imported")
+print("✅ Flask imported") 
 
 app = Flask(__name__)
 print("✅ Flask app created")
@@ -51,10 +51,12 @@ try:
     print("✅ Full app imported and merged successfully")
     
 except Exception as e:
-    print(f"⚠️ Could not import full app: {e}")
-    print("📝 Running in minimal mode")
+    print(f"❌ CRITICAL: Could not import full app: {e}")
+    print("📝 Running in minimal mode - this will cause 404 errors for API routes!")
     import traceback
     traceback.print_exc()
+    # Don't continue with minimal app in production
+    raise e
 
 print(f"🔍 Final app object: {app}")
 print(f"🔍 App type: {type(app)}")
@@ -65,4 +67,4 @@ print("🎉 wsgi.py import completed successfully!")
 if __name__ == '__main__':
     # Only run Flask dev server when running locally
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)

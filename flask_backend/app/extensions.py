@@ -8,11 +8,15 @@ from pymongo import MongoClient, ASCENDING
 cors = CORS(
     origins=[
         "http://localhost:3000",
-        "https://amala-joint.vercel.app"
+        "https://amala-joint.vercel.app",
+        "http://localhost:8081",  # React Native dev server
+        "http://192.168.43.48:8081",  # Mobile device IP
+        "http://192.168.43.48:3000",  # Mobile device IP for web
     ],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
-    supports_credentials=True
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    supports_credentials=True,
+    automatic_options=True
 )
 jwt = JWTManager()
 mail = Mail()

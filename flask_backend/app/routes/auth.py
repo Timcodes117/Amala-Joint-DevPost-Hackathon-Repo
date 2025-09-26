@@ -42,6 +42,11 @@ def verify_email_token(token: str, max_age_seconds: int = 3600) -> str | None:
         return None
 
 
+@auth_bp.route('/signup', methods=['OPTIONS'])
+def signup_options():
+    """Handle CORS preflight requests for signup endpoint"""
+    return '', 200
+
 @auth_bp.post('/signup')
 def signup():
     data = request.get_json() or {}
@@ -102,6 +107,11 @@ def signup():
         }
     }), 201
 
+
+@auth_bp.route('/login', methods=['OPTIONS'])
+def login_options():
+    """Handle CORS preflight requests for login endpoint"""
+    return '', 200
 
 @auth_bp.post('/login')
 def login():
@@ -214,6 +224,11 @@ def resend_verification():
         'mail_sent': mail_sent
     }), 200
 
+
+@auth_bp.route('/google', methods=['OPTIONS'])
+def google_login_options():
+    """Handle CORS preflight requests for Google login endpoint"""
+    return '', 200
 
 @auth_bp.post('/google')
 def google_login():
