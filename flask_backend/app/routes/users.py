@@ -19,6 +19,11 @@ users_bp = Blueprint('users', __name__)
 #         users.append(serialize_document(doc))
 #     return jsonify({'success': True, 'data': users}), 200
 
+@users_bp.route('/get_current_address', methods=['OPTIONS'])
+def get_address_options():
+    """Handle CORS preflight requests for get current address endpoint"""
+    return '', 200
+
 @users_bp.post('/get_current_address')
 def get_address():
     print("=== GET CURRENT ADDRESS ENDPOINT CALLED ===")
@@ -61,6 +66,11 @@ def get_address():
 #     return jsonify({'success': True, 'data': []}), 200
 
 
+@users_bp.route('/get_places_nearby/<latitude>/<longitude>', methods=['OPTIONS'])
+def get_places_nearby_options(latitude, longitude):
+    """Handle CORS preflight requests for get places nearby endpoint"""
+    return '', 200
+
 @users_bp.post('/get_places_nearby/<latitude>/<longitude>')
 def get_places_nearby(latitude, longitude):
     print("=== GET PLACES NEARBY ENDPOINT CALLED ===")
@@ -79,6 +89,11 @@ def get_places_nearby(latitude, longitude):
     else:
         places = []
     return jsonify({'success': True, 'data': places}), 200
+
+@users_bp.route('/search_addresses', methods=['OPTIONS'])
+def search_addresses_options():
+    """Handle CORS preflight requests for search addresses endpoint"""
+    return '', 200
 
 @users_bp.post('/search_addresses')
 def search_addresses():
@@ -122,6 +137,11 @@ def search_addresses():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+
+@users_bp.route('/get_place_details/<place_id>', methods=['OPTIONS'])
+def get_place_details_options(place_id):
+    """Handle CORS preflight requests for get place details endpoint"""
+    return '', 200
 
 @users_bp.post('/get_place_details/<place_id>')
 def get_place_details(place_id):

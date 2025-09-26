@@ -19,6 +19,11 @@ stores_bp = Blueprint('stores', __name__)
 
 # Cloudinary configuration is handled in the service
 
+@stores_bp.route('/add', methods=['OPTIONS'])
+def add_store_options():
+    """Handle CORS preflight requests for add store endpoint"""
+    return '', 200
+
 @stores_bp.post('/add')
 @jwt_required()
 def add_store():
@@ -171,6 +176,11 @@ def get_store(store_id):
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@stores_bp.route('/<store_id>/verify', methods=['OPTIONS'])
+def verify_store_options(store_id):
+    """Handle CORS preflight requests for verify store endpoint"""
+    return '', 200
 
 @stores_bp.post('/<store_id>/verify')
 @jwt_required()
@@ -344,6 +354,11 @@ def get_store_stats():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@stores_bp.route('/upload-image', methods=['OPTIONS'])
+def upload_image_options():
+    """Handle CORS preflight requests for upload image endpoint"""
+    return '', 200
+
 @stores_bp.post('/upload-image')
 @jwt_required()
 def upload_image():
@@ -380,6 +395,11 @@ def upload_image():
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@stores_bp.route('/image/<public_id>', methods=['OPTIONS'])
+def delete_image_options(public_id):
+    """Handle CORS preflight requests for delete image endpoint"""
+    return '', 200
 
 @stores_bp.delete('/image/<public_id>')
 @jwt_required()

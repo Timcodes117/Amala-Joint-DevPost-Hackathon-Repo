@@ -127,6 +127,11 @@ def safe_agent_response(response):
 def list_users():
     return jsonify({'success': True, 'data': "response"}), 200
 
+@translate_bp.route("/translate", methods=['OPTIONS'])
+def translate_text_options():
+    """Handle CORS preflight requests for translate endpoint"""
+    return '', 200
+
 @translate_bp.post("/translate")
 def translate_text():
     try:
@@ -148,6 +153,11 @@ def translate_text():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500    
+
+@ai_chatbot_bp.route('/chat', methods=['OPTIONS'])
+def chat_options():
+    """Handle CORS preflight requests for chat endpoint"""
+    return '', 200
 
 @ai_chatbot_bp.post('/chat')
 @jwt_required()
@@ -195,6 +205,11 @@ def chat():
         }), 500
 
 # Navigation routes
+@navigate_bp.route('/navigate', methods=['OPTIONS'])
+def navigate_to_place_options():
+    """Handle CORS preflight requests for navigate endpoint"""
+    return '', 200
+
 @navigate_bp.post('/navigate')
 @jwt_required()
 def navigate_to_place():
@@ -321,6 +336,11 @@ def navigate_to_place():
 
 
 # Amala finder routes
+@amala_finder_bp.route('/amala_finder', methods=['OPTIONS'])
+def find_amala_options():
+    """Handle CORS preflight requests for amala finder endpoint"""
+    return '', 200
+
 @amala_finder_bp.post('/amala_finder')
 def find_amala():
     try:
@@ -622,6 +642,11 @@ def find_amala():
         return jsonify({
             "error": "Failed to run amala finder agent"
         }), 500
+
+@amala_ai_bp.route('/verify-store/', methods=['OPTIONS'])
+def verify_store_options():
+    """Handle CORS preflight requests for verify store endpoint"""
+    return '', 200
 
 @amala_ai_bp.post('/verify-store/')
 @jwt_required()
