@@ -225,13 +225,26 @@ def google_login():
     try:
         # Initialize Firebase Admin app lazily
         if not firebase_admin._apps:
-            # Prefer application default credentials if available
-            try:
-                cred = firebase_credentials.ApplicationDefault()
-            except Exception:
-                cred = firebase_credentials.Certificate({
-                    # Expect env-based service account JSON if provided, else ADC will be used.
-                })
+            # Try to get service account from environment variable
+            import os
+            import json
+            
+            service_account_json = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
+            if service_account_json:
+                try:
+                    service_account_info = json.loads(service_account_json)
+                    cred = firebase_credentials.Certificate(service_account_info)
+                except (json.JSONDecodeError, ValueError) as e:
+                    current_app.logger.error(f'Invalid FIREBASE_SERVICE_ACCOUNT_JSON: {e}')
+                    raise Exception('Invalid Firebase service account configuration')
+            else:
+                # Fall back to Application Default Credentials
+                try:
+                    cred = firebase_credentials.ApplicationDefault()
+                except Exception as e:
+                    current_app.logger.error(f'Failed to initialize Firebase credentials: {e}')
+                    raise Exception('Firebase credentials not configured properly')
+            
             firebase_admin.initialize_app(cred)
 
         payload = firebase_auth.verify_id_token(id_token)

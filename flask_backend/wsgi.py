@@ -44,14 +44,9 @@ try:
     full_app = create_full_app()
     print("✅ Successfully created full app")
     
-    # Merge the full app's routes and configuration
-    app.config.update(full_app.config)
-    print("✅ Successfully updated config")
-    
-    # Register blueprints from the full app
-    for blueprint in full_app.blueprints.values():
-        app.register_blueprint(blueprint)
-    print("✅ Successfully registered blueprints")
+    # Replace the minimal app with the full app
+    app = full_app
+    print("✅ Successfully replaced with full app")
     
     print("✅ Full app imported and merged successfully")
     

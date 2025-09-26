@@ -38,6 +38,7 @@ function ResultsContainer({
   onToggleFavorite,
   place_id,
 }: ResultsContainerProps) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const [localFav, setLocalFav] = useState<boolean>(!!isFavorite)
 
   // const toggleFav = () => {
