@@ -65,7 +65,7 @@ print(f"🔍 Final app object: {app}")
 print(f"🔍 App type: {type(app)}")
 print(f"🔍 App has routes: {len(app.url_map._rules)}")
 
-print("🎉 app.py import completed successfully!")
+print("🎉 wsgi.py import completed successfully!")
 
 if __name__ == '__main__':
     # Only run Flask dev server when running locally

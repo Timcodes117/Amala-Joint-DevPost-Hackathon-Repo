@@ -17,7 +17,7 @@ function AuthLayout({children}:{children: React.ReactNode}) {
         router.replace('/home')
       } 
     }
-  }, [])
+  }, [router])
 
 
   return (

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { Heart, MapPin, Clock, Star, CheckCircle2 } from 'lucide-react'
-import Link from 'next/link'
+// import Link from 'next/link'
 
 export type SpotCardProps = {
   name: string

@@ -23,6 +23,14 @@ except Exception as e:
     print(f"⚠️ Could not import translate blueprint: {e}")
     translate_bp = None
 
+# Try to import docs_bp separately to isolate issues
+try:
+    from .routes.docs import docs_bp
+    print("✅ Docs blueprint imported successfully")
+except Exception as e:
+    print(f"⚠️ Could not import docs blueprint: {e}")
+    docs_bp = None
+
 
 
 
@@ -49,6 +57,13 @@ def create_app(config_class: type[Config] = Config) -> Flask:
         print("✅ Translate blueprint registered")
     else:
         print("⚠️ Translate blueprint not available")
+    
+    # Register docs blueprint separately if available
+    if docs_bp:
+        app.register_blueprint(docs_bp)
+        print("✅ Docs blueprint registered")
+    else:
+        print("⚠️ Docs blueprint not available")
 
 
     @app.get("/")
@@ -62,6 +77,8 @@ def create_app(config_class: type[Config] = Config) -> Flask:
                 "health": "/api/health",
                 "stores": "/api/stores",
                 "chatbot": "/api/ai",
+                "docs": "/api/docs",
+                "swagger": "/api/docs/swagger.yaml"
             },
         }
 

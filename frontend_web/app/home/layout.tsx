@@ -195,7 +195,7 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
                 <p className='text-gray-500'>Loading stores...</p>
               </div>
             ) : unverifiedStores.length > 0 ? (
-              unverifiedStores.map((store, i) => (
+              unverifiedStores.map((store) => (
                 <VerifyResultsContainer
                   key={`verify-${store._id}`}
                   name={store.name}

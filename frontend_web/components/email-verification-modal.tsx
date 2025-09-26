@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, CheckCircle } from 'lucide-react'
+import { X } from 'lucide-react'
 import { ClipLoader } from 'react-spinners'
 import { HiCheckBadge } from 'react-icons/hi2'
 

@@ -2,7 +2,7 @@
 import React from 'react'
 import { useSavedPlaces } from '@/hooks/useSavedPlaces'
 import { useRouter } from 'next/navigation'
-import { MapPin, Star, Clock, Heart } from 'lucide-react'
+import { Heart, MapPin } from 'lucide-react'
 import { HiCheckBadge } from 'react-icons/hi2'
 
 function Page() {

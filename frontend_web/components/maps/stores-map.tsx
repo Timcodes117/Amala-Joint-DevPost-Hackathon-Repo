@@ -58,9 +58,9 @@ type CombinedPlace = {
   verified?: boolean;
   source?: string;
   imageUrl?: string;
-  photos?: any[];
-  opening_hours?: any;
-  geometry?: any;
+  photos?: Array<{ photo_reference?: string }>;
+  opening_hours?: { open_now?: boolean };
+  geometry?: { location?: { lat?: number; lng?: number } };
   place_id?: string;
   opensAt?: string;
   closesAt?: string;
@@ -125,14 +125,33 @@ export default function StoresMap() {
         });
         const json = await resp.json();
         const places = json?.data?.places || json?.places || [];
-        const mapped: CombinedPlace[] = (places as any[])
+        const mapped: CombinedPlace[] = (places as Array<{
+          place_id?: string;
+          id?: string;
+          name?: string;
+          formatted_address?: string;
+          vicinity?: string;
+          address?: string;
+          geometry?: { location?: { lat?: number; lng?: number } };
+          rating?: number;
+          price_level?: number;
+          source?: string;
+          verifiedBy?: string;
+          photos?: Array<{ photo_reference?: string }>;
+          opening_hours?: { open_now?: boolean };
+          imageUrl?: string;
+          opensAt?: string;
+          closesAt?: string;
+          phone?: string;
+          description?: string;
+        }>)
           .map((p) => {
-            const placeId: string = p.place_id || p.id;
-            const name: string = p.name;
+            const placeId = p.place_id || p.id;
+            const name = p.name;
             const addr: string | undefined = p.formatted_address || p.vicinity || p.address;
             const geo = p.geometry?.location;
             const lat = geo?.lat;
-            const lng = geo?.lng ?? geo?.long;
+            const lng = geo?.lng;
             if (!placeId || !name || typeof lat !== "number" || typeof lng !== "number") {
               return null;
             }
@@ -156,7 +175,7 @@ export default function StoresMap() {
           })
           .filter(Boolean) as CombinedPlace[];
         setStores(mapped);
-      } catch (e) {
+      } catch {
         setStores([]);
       }
     };
@@ -185,8 +204,7 @@ export default function StoresMap() {
         },
       });
 
-      markerRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
-        e.stop?.(); // Prevent map click from firing
+      markerRef.current.addListener("click", () => {
         setShowPopover((prev) => !prev);
       });
     } else {
@@ -250,8 +268,7 @@ export default function StoresMap() {
                     anchor: new google.maps.Point(16, 32), // Center bottom of image
                   }}
                   // shape={google.maps.}
-                  onClick={(e) => {
-                    e.stop?.(); // Prevent map click from firing
+                  onClick={() => {
                     setSelectedStore(s);
                   }}
                 />
@@ -321,5 +338,3 @@ export default function StoresMap() {
     </GoogleMap>
   );
 }
-
-

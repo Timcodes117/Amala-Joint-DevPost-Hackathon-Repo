@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
+// import Link from 'next/link'
 import { MapPinned, Upload } from 'lucide-react'
 import { useStores } from '@/contexts/StoreContext'
 import { useApp } from '@/contexts/AppContext'
@@ -22,16 +22,16 @@ interface StoreFormValues {
   file: File | null
 }
 
-interface AddressSuggestion {
-  place_id: string
-  formatted_address: string
-  geometry: {
-    location: {
-      lat: number
-      lng: number
-    }
-  }
-}
+// interface AddressSuggestion {
+//   place_id: string
+//   formatted_address: string
+//   geometry: {
+//     location: {
+//       lat: number
+//       lng: number
+//     }
+//   }
+// }
 
 interface SelectOption {
   value: string
@@ -95,7 +95,7 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
       const data = await response.json()
       
       if (data.status === 'OK' && data.predictions) {
-        const options = data.predictions.map((prediction: any) => ({
+        const options = data.predictions.map((prediction: { description: string; place_id: string }) => ({
           value: prediction.description,
           label: prediction.description,
           place_id: prediction.place_id,
@@ -302,7 +302,7 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
         setSelectedAddress(currentLocationOption)
       }
     }
-  }, [location.latitude, location.longitude, location.address])
+  }, [location.latitude, location.longitude, location.address, values.location, selectedAddress?.place_id])
 
   // Save draft (excluding file)
   function handleSaveDraft() {
@@ -312,7 +312,7 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify(rest))
         setError(null)
       }
-    } catch (e) {
+    } catch {
       setError('Unable to save draft locally.')
     }
   }
@@ -489,8 +489,8 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
             type='file'
             accept='.png,.jpg,.jpeg,image/png,image/jpeg'
             className='hidden'
-            onChange={(e) => {
-              const file = e.target.files?.[0] ?? null
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null
               if (file && isSupported(file)) update('file', file)
             }}
           />

@@ -1,5 +1,5 @@
 "use client"
-import { ArrowUpDown, Plus, MapPin, RefreshCw } from 'lucide-react'
+import { ArrowUpDown, Plus, RefreshCw } from 'lucide-react'
   import { type SearchResult } from '@/components/search-popover'
   import SearchBar from '@/components/search-bar'
   import React, { useMemo, useEffect } from 'react'
@@ -17,7 +17,7 @@ import { useSavedPlaces } from '@/hooks/useSavedPlaces'
 
     // Convert places to SearchResult format for SearchBar compatibility
     const searchResults: SearchResult[] = useMemo(() => {
-      return location.places.map((place, index) => ({
+      return location.places.map((place) => ({
         id: place.place_id,
         name: place.name,
         distanceKm: Math.round(Math.random() * 10 + 1), // Mock distance calculation
@@ -44,7 +44,7 @@ import { useSavedPlaces } from '@/hooks/useSavedPlaces'
       } else {
         console.log('Skipping getCurrentLocation due to conditions')
       }
-    }, [getCurrentLocation]) // Only depend on the stable function reference
+    }, [getCurrentLocation, location.latitude, location.isLoading, location.error]) // Include all dependencies
 
     // No manual refresh button; auto-fetch only
 

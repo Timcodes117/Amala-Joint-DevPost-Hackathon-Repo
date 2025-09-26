@@ -20,12 +20,6 @@ export default function VerifyUserPage() {
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-  useEffect(() => {
-    if (token) {
-      verifyEmail()
-    }
-  }, [token])
-
   const verifyEmail = async () => {
     try {
       setState('loading')
@@ -56,6 +50,12 @@ export default function VerifyUserPage() {
       setMessage('Network error. Please try again.')
     }
   }
+
+  useEffect(() => {
+    if (token) {
+      verifyEmail()
+    }
+  }, [token, verifyEmail])
 
   const handleResendEmail = async () => {
     if (!userEmail) {

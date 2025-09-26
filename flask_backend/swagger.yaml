@@ -1,0 +1,841 @@
+openapi: 3.0.3
+info:
+  title: Amala Joint - AI-Powered Restaurant Discovery API
+  description: |
+    An intelligent Flask backend that uses Google Cloud AI tools and agentic workflows 
+    to help users discover the best Amala (Nigerian cuisine) restaurants. Built with 
+    Google Maps API, Gemini AI, and Google ADK for seamless restaurant recommendations and navigation.
+  version: 1.0.0
+  contact:
+    name: Amala Joint Team
+    url: https://amala-joint-devpost-hackathon-repo-6uvv.onrender.com/
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: https://amala-joint-devpost-hackathon-repo-6uvv.onrender.com
+    description: Production server
+  - url: http://localhost:5000
+    description: Development server
+
+paths:
+  /:
+    get:
+      summary: Get app status and information
+      description: Returns basic information about the Amala Joint API
+      tags:
+        - Core
+      responses:
+        '200':
+          description: App information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Amala App - Flask Backend"
+                  status:
+                    type: string
+                    example: "running"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  endpoints:
+                    type: object
+                    properties:
+                      auth:
+                        type: string
+                        example: "/api/auth"
+                      users:
+                        type: string
+                        example: "/api/users"
+                      health:
+                        type: string
+                        example: "/api/health"
+                      stores:
+                        type: string
+                        example: "/api/stores"
+                      chatbot:
+                        type: string
+                        example: "/api/ai"
+
+  /api/health:
+    get:
+      summary: Health check
+      description: Check if the API is running and healthy
+      tags:
+        - Core
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  service:
+                    type: string
+                    example: "flask-backend"
+
+  /api/auth/signup:
+    post:
+      summary: Register new user
+      description: Create a new user account
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  minLength: 6
+                  example: "password123"
+                name:
+                  type: string
+                  example: "John Doe"
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User created successfully"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  access_token:
+                    type: string
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/login:
+    post:
+      summary: Login user
+      description: Authenticate user and return access token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  example: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Login successful"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  access_token:
+                    type: string
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/me:
+    get:
+      summary: Get current user info
+      description: Get information about the currently authenticated user
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/ai/chat:
+    post:
+      summary: AI chat with restaurant recommendations
+      description: Chat with AI agent for restaurant recommendations and queries
+      tags:
+        - AI Features
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: "Find me the best Amala restaurant in Lagos"
+                lang:
+                  type: string
+                  enum: [en, yo]
+                  default: en
+                  example: "en"
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    example: "I found several great Amala restaurants in Lagos..."
+                  ai_agent_available:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/ai/find:
+    post:
+      summary: Find Amala restaurants near location
+      description: Use AI agent to find restaurants based on location and preferences
+      tags:
+        - AI Features
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - location
+              properties:
+                location:
+                  type: string
+                  example: "Lagos, Nigeria"
+                cuisine:
+                  type: string
+                  example: "amala"
+                radius:
+                  type: number
+                  example: 5000
+      responses:
+        '200':
+          description: Restaurant recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restaurants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Restaurant'
+                  location:
+                    type: string
+                    example: "Lagos, Nigeria"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/ai/plan:
+    post:
+      summary: Plan restaurant visits
+      description: Create a plan for visiting multiple restaurants
+      tags:
+        - AI Features
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - locations
+              properties:
+                locations:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Lagos", "Abuja"]
+                preferences:
+                  type: object
+                  properties:
+                    budget:
+                      type: string
+                      example: "moderate"
+                    cuisine:
+                      type: string
+                      example: "amala"
+      responses:
+        '200':
+          description: Restaurant visit plan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plan:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlanItem'
+                  total_estimated_cost:
+                    type: string
+                    example: "₦15,000"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/ai/navigate:
+    post:
+      summary: Get directions to restaurants
+      description: Get navigation directions to recommended restaurants
+      tags:
+        - AI Features
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - destination
+              properties:
+                destination:
+                  type: string
+                  example: "Amala Spot Restaurant, Lagos"
+                origin:
+                  type: string
+                  example: "Victoria Island, Lagos"
+                mode:
+                  type: string
+                  enum: [driving, walking, transit]
+                  default: driving
+                  example: "driving"
+      responses:
+        '200':
+          description: Navigation directions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  directions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        step:
+                          type: string
+                          example: "Turn right onto Broad Street"
+                        distance:
+                          type: string
+                          example: "500m"
+                        duration:
+                          type: string
+                          example: "2 mins"
+                  total_distance:
+                    type: string
+                    example: "5.2 km"
+                  total_duration:
+                    type: string
+                    example: "15 mins"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/translate:
+    post:
+      summary: Translate text (English ↔ Yoruba)
+      description: Translate text between English and Yoruba languages
+      tags:
+        - AI Features
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  example: "Hello, how are you?"
+                source_lang:
+                  type: string
+                  enum: [en-GB, yo-NG, auto]
+                  default: auto
+                  example: "auto"
+                target_lang:
+                  type: string
+                  enum: [en-GB, yo-NG]
+                  default: yo-NG
+                  example: "yo-NG"
+      responses:
+        '200':
+          description: Translation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  detected_lang:
+                    type: string
+                    example: "en-GB"
+                  source_lang:
+                    type: string
+                    example: "en-GB"
+                  target_lang:
+                    type: string
+                    example: "yo-NG"
+                  original_text:
+                    type: string
+                    example: "Hello, how are you?"
+                  translated_text:
+                    type: string
+                    example: "Báwo ni o ṣe wa?"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/profile:
+    get:
+      summary: Get user profile
+      description: Get the current user's profile information
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update user profile
+      description: Update the current user's profile information
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "John Doe"
+                preferences:
+                  type: object
+                  properties:
+                    cuisine:
+                      type: string
+                      example: "amala"
+                    budget:
+                      type: string
+                      example: "moderate"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/stores:
+    get:
+      summary: List restaurants
+      description: Get a list of restaurants with optional filtering
+      tags:
+        - Store Management
+      parameters:
+        - name: cuisine
+          in: query
+          description: Filter by cuisine type
+          required: false
+          schema:
+            type: string
+            example: "amala"
+        - name: location
+          in: query
+          description: Filter by location
+          required: false
+          schema:
+            type: string
+            example: "Lagos"
+        - name: limit
+          in: query
+          description: Number of results to return
+          required: false
+          schema:
+            type: integer
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: List of restaurants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Restaurant'
+                  total:
+                    type: integer
+                    example: 25
+                  page:
+                    type: integer
+                    example: 1
+
+    post:
+      summary: Add new restaurant
+      description: Add a new restaurant to the database
+      tags:
+        - Store Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - location
+                - cuisine
+              properties:
+                name:
+                  type: string
+                  example: "Amala Spot Restaurant"
+                location:
+                  type: string
+                  example: "Lagos, Nigeria"
+                cuisine:
+                  type: string
+                  example: "amala"
+                description:
+                  type: string
+                  example: "Best Amala in Lagos"
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                  example: 4.5
+                price_range:
+                  type: string
+                  enum: [low, moderate, high]
+                  example: "moderate"
+                coordinates:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                      example: 6.5244
+                    lng:
+                      type: number
+                      example: 3.3792
+      responses:
+        '201':
+          description: Restaurant created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/stores/{id}:
+    get:
+      summary: Get restaurant details
+      description: Get detailed information about a specific restaurant
+      tags:
+        - Store Management
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Restaurant ID
+          schema:
+            type: string
+            example: "64f8a1b2c3d4e5f6a7b8c9d0"
+      responses:
+        '200':
+          description: Restaurant details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '404':
+          description: Restaurant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        name:
+          type: string
+          example: "John Doe"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-09-26T10:30:00Z"
+        is_verified:
+          type: boolean
+          example: true
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            preferences:
+              type: object
+              properties:
+                cuisine:
+                  type: string
+                  example: "amala"
+                budget:
+                  type: string
+                  example: "moderate"
+                location:
+                  type: string
+                  example: "Lagos"
+
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64f8a1b2c3d4e5f6a7b8c9d0"
+        name:
+          type: string
+          example: "Amala Spot Restaurant"
+        location:
+          type: string
+          example: "Lagos, Nigeria"
+        cuisine:
+          type: string
+          example: "amala"
+        description:
+          type: string
+          example: "Best Amala in Lagos with authentic taste"
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+          example: 4.5
+        price_range:
+          type: string
+          enum: [low, moderate, high]
+          example: "moderate"
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+              example: 6.5244
+            lng:
+              type: number
+              example: 3.3792
+        address:
+          type: string
+          example: "123 Broad Street, Lagos Island"
+        phone:
+          type: string
+          example: "+234-123-456-7890"
+        hours:
+          type: object
+          properties:
+            monday:
+              type: string
+              example: "8:00 AM - 10:00 PM"
+            tuesday:
+              type: string
+              example: "8:00 AM - 10:00 PM"
+            wednesday:
+              type: string
+              example: "8:00 AM - 10:00 PM"
+            thursday:
+              type: string
+              example: "8:00 AM - 10:00 PM"
+            friday:
+              type: string
+              example: "8:00 AM - 11:00 PM"
+            saturday:
+              type: string
+              example: "9:00 AM - 11:00 PM"
+            sunday:
+              type: string
+              example: "10:00 AM - 9:00 PM"
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["https://cloudinary.com/image1.jpg", "https://cloudinary.com/image2.jpg"]
+        is_verified:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-09-26T10:30:00Z"
+
+    PlanItem:
+      type: object
+      properties:
+        restaurant:
+          $ref: '#/components/schemas/Restaurant'
+        visit_date:
+          type: string
+          format: date
+          example: "2023-09-28"
+        estimated_cost:
+          type: string
+          example: "₦3,000"
+        notes:
+          type: string
+          example: "Try the signature Amala with ewedu"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "Invalid input parameters"
+        details:
+          type: object
+          additionalProperties: true
+
+tags:
+  - name: Core
+    description: Core API endpoints
+  - name: Authentication
+    description: User authentication and authorization
+  - name: AI Features
+    description: AI-powered restaurant discovery and recommendations
+  - name: User Management
+    description: User profile and preferences management
+  - name: Store Management
+    description: Restaurant data management

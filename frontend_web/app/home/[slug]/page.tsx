@@ -89,12 +89,6 @@ function Page() {
 
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-    useEffect(() => {
-        if (placeId) {
-            fetchPlaceDetails()
-        }
-    }, [placeId])
-
     const fetchPlaceDetails = async () => {
         try {
             setIsLoading(true)
@@ -147,6 +141,12 @@ function Page() {
             setIsLoading(false)
         }
     }
+
+    useEffect(() => {
+        if (placeId) {
+            fetchPlaceDetails()
+        }
+    }, [placeId, fetchPlaceDetails])
 
     const CloseModal = () => {
         if (window.history.length > 1) {

@@ -24,10 +24,10 @@ export type VerifyResultsContainerProps = {
 export default function VerifyResultsContainer({
   name,
   location,
-  opensAt,
-  closesAt,
-  distanceKm,
-  etaMinutes,
+  opensAt: _opensAt,
+  closesAt: _closesAt,
+  distanceKm: _distanceKm,
+  etaMinutes: _etaMinutes,
   rating: _rating,
   verified = false,
   imageUrl,
@@ -38,7 +38,7 @@ export default function VerifyResultsContainer({
   shareUrl,
 }: VerifyResultsContainerProps) {
   const [copied, setCopied] = React.useState(false)
-  const { useClipboard } = require('@/contexts/ClipboardContext') as typeof import('@/contexts/ClipboardContext')
+  const { useClipboard } = React.useMemo(() => require('@/contexts/ClipboardContext'), []) as typeof import('@/contexts/ClipboardContext')
   const { copyToClipboard } = useClipboard()
 
   const handleShare = async () => {

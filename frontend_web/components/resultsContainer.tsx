@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Heart, MapPin, Clock, Star, CheckCircle2, StarIcon } from 'lucide-react'
+import { MapPin, Clock, Star } from 'lucide-react'
 import { HiCheckBadge } from 'react-icons/hi2'
 import Link from 'next/link'
 
@@ -27,8 +27,8 @@ function ResultsContainer({
   location,
   opensAt,
   closesAt,
-  distanceKm,
-  etaMinutes,
+  distanceKm: _distanceKm,
+  etaMinutes: _etaMinutes,
   rating,
   verified = false,
   imageUrl,
@@ -40,11 +40,11 @@ function ResultsContainer({
 }: ResultsContainerProps) {
   const [localFav, setLocalFav] = useState<boolean>(!!isFavorite)
 
-  const toggleFav = () => {
-    const next = !localFav
-    setLocalFav(next)
-    onToggleFavorite?.(next)
-  }
+  // const toggleFav = () => {
+  //   const next = !localFav
+  //   setLocalFav(next)
+  //   onToggleFavorite?.(next)
+  // }
 
   return (
     <div className="w-full min-h-fit !border-gray-600/90 p-2 overflow-hidden  relative border-b flex flex-row gap-2">

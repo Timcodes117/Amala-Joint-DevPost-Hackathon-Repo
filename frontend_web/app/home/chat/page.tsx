@@ -1,11 +1,10 @@
 "use client"
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
 import ChatHeader from '@/components/chat/ChatHeader'
 import ChatBubble from '@/components/chat/ChatBubble'
-import ChatQuickReplies from '@/components/chat/ChatQuickReplies'
 import ChatInput from '@/components/chat/ChatInput'
 import { useApp } from '@/contexts/AppContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,8 +17,20 @@ type CTAAction =
 
 type Message = { id: string; from: 'bot' | 'user'; text: string; ctas?: CTAAction[] }
 
+interface LocationData {
+  latitude?: number
+  longitude?: number
+  address?: string
+}
+
+interface AppContextData {
+  location?: LocationData
+  locale?: string
+}
+
 function Page() {
-  const { location, locale } = useApp() || ({} as any)
+  const appContext = useApp()
+  const { location, locale } = (appContext as AppContextData) || {}
   const { accessToken, isAuthenticated } = useAuth()
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,23 +45,23 @@ function Page() {
         setError('You need to be logged in to search')
         return
       }
-      const userLocation = (location as any)?.latitude && (location as any)?.longitude
-        ? { lat: (location as any).latitude, long: (location as any).longitude }
-        : ((location as any)?.address || '')
+      const userLocation = location?.latitude && location?.longitude
+        ? `${location.latitude},${location.longitude}`
+        : (location?.address || '')
 
-      const { data } = await axiosPost('/api/ai/amala_finder', { query, location: userLocation } as any, { Authorization: `Bearer ${accessToken}` })
+      const { data } = await axiosPost('/api/ai/amala_finder', { query, location: userLocation }, { Authorization: `Bearer ${accessToken}` })
       if (!data?.success) {
         setError(data?.error || 'Search failed')
         return
       }
 
-      const payload = (data.data && (data.data as any).response) || data.response
+      const payload = (data.data && (data.data as { response?: unknown }).response) || data.response
       const resultText = typeof payload === 'string' ? payload : JSON.stringify(payload)
       setMessages((prev) => [
         ...prev,
         { id: String(Date.now()), from: 'bot', text: resultText },
       ])
-    } catch (e) {
+    } catch {
       setError('Search error')
     }
   }
@@ -61,14 +72,14 @@ function Page() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages])
 
-  const handleQuick = (id: string) => {
-    if (id === 'start') {
-      setMessages((prev) => [
-        ...prev,
-        { id: String(Date.now()), from: 'user', text: "Yes, let&apos;s do it" },
-      ])
-    }
-  }
+  // const handleQuick = (id: string) => {
+  //   if (id === 'start') {
+  //     setMessages((prev) => [
+  //       ...prev,
+  //       { id: String(Date.now()), from: 'user', text: "Yes, let&apos;s do it" },
+  //     ])
+  //   }
+  // }
 
   const handleSend = (text: string) => {
     const user: Message = { id: String(Date.now()), from: 'user', text }
@@ -76,17 +87,18 @@ function Page() {
     void sendToBot(text)
   }
 
-  const parseBotResponse = (payload: unknown): { text: string; ctas?: CTAAction[]; intent?: string; raw?: any } => {
+  const parseBotResponse = (payload: unknown): { text: string; ctas?: CTAAction[]; intent?: string; raw?: unknown } => {
     // Accepts string or object; tries to extract text and optional CTA actions
     if (typeof payload === 'string') {
       return { text: payload }
     }
     if (payload && typeof payload === 'object') {
-      const obj = payload as Record<string, any>
+      const obj = payload as Record<string, unknown>
       // Prefer normalized envelope {intent, message, data}
       if (typeof obj.intent === 'string' && ('message' in obj || 'data' in obj)) {
         const msg = typeof obj.message === 'string' ? obj.message : (typeof obj.data === 'string' ? obj.data : JSON.stringify(obj.data))
-        const ctas = Array.isArray((obj.data as any)?.ctas) ? (obj.data as any).ctas as CTAAction[] : (Array.isArray(obj.ctas) ? obj.ctas as CTAAction[] : undefined)
+        const dataObj = obj.data as { ctas?: CTAAction[] } | undefined
+        const ctas = Array.isArray(dataObj?.ctas) ? dataObj.ctas : (Array.isArray(obj.ctas) ? obj.ctas as CTAAction[] : undefined)
         return { text: msg, ctas, intent: obj.intent, raw: obj }
       }
       // Common shapes: { text, ctas } or { message } or { response }
@@ -115,7 +127,7 @@ function Page() {
         ])
         return
       }
-      const userAddress = (location as any)?.address || undefined
+      const userAddress = location?.address || ''
       const { data } = await axiosPost('/api/ai/chat', { message, lang: locale || 'en', address: userAddress }, { Authorization: `Bearer ${accessToken}` })
       if (!data?.success) {
         setError(data?.error || 'Failed to get response')
@@ -134,10 +146,11 @@ function Page() {
 
       // If AI requested to add a store, trigger creation
       if (parsed.intent === 'add_store') {
-        const addPayload = (parsed.raw as any)?.data || {}
+        const rawData = parsed.raw as { data?: Record<string, unknown> } | undefined
+        const addPayload = rawData?.data || {}
         void handleAddStore(addPayload)
       }
-    } catch (e) {
+    } catch {
       setError('Network error')
       setMessages((prev) => [
         ...prev,
@@ -148,7 +161,7 @@ function Page() {
     }
   }
 
-  const handleAddStore = async (storeData: any) => {
+  const handleAddStore = async (storeData: Record<string, unknown>) => {
     try {
       if (!isAuthenticated || !accessToken) {
         setError('You need to be logged in to add a store')
@@ -156,7 +169,7 @@ function Page() {
       }
 
       const required = ['name', 'phone', 'location', 'opensAt', 'closesAt', 'description']
-      const missing = required.filter((k) => !storeData?.[k])
+      const missing = required.filter((k) => !(storeData as Record<string, unknown>)?.[k])
       if (missing.length) {
         setMessages((prev) => [
           ...prev,
@@ -165,7 +178,7 @@ function Page() {
         return
       }
 
-      const { data } = await axiosPost('/api/stores/add', storeData as any, { Authorization: `Bearer ${accessToken}` })
+      const { data } = await axiosPost('/api/stores/add', storeData as Record<string, string | number>, { Authorization: `Bearer ${accessToken}` })
       if (!data?.success) {
         setMessages((prev) => [
           ...prev,
@@ -174,14 +187,16 @@ function Page() {
         return
       }
 
-      const placeId = (data.store && (data.store as any).place_id) || (data.data && (data.data as any).place_id)
+      const storeResponse = data.store as { place_id?: string } | undefined
+      const responseData = data.data as { place_id?: string } | undefined
+      const placeId = storeResponse?.place_id || responseData?.place_id
       const link = placeId ? `/home/${placeId}` : '/home'
       const md = `✅ Store added! [View store](${link})` 
       setMessages((prev) => [
         ...prev,
         { id: String(Date.now()), from: 'bot', text: md },
       ])
-    } catch (e) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { id: String(Date.now()), from: 'bot', text: 'An error occurred while adding the store.' },
@@ -207,27 +222,28 @@ function Page() {
       }
 
       const userLocation = location?.latitude && location?.longitude
-        ? { lat: location.latitude, long: location.longitude }
+        ? `${location.latitude},${location.longitude}`
         : (location?.address || '')
 
-      const { data } = await axiosPost('/api/ai/navigate', { query, location: userLocation } as any, { Authorization: `Bearer ${accessToken}` })
+      const { data } = await axiosPost('/api/ai/navigate', { query, location: userLocation }, { Authorization: `Bearer ${accessToken}` })
       if (!data?.success) {
         setError(data?.error || 'Navigation failed')
         return
       }
 
-      const response = (data.data && (data.data as any).response) || data.response
+      const response = (data.data && (data.data as { response?: unknown }).response) || data.response
       // Try to detect a maps URL or fallback to a maps search
+      const responseObj = response as { maps_url?: string; url?: string } | undefined
       const mapsUrl: string | undefined =
-        (typeof response === 'object' && response && (response as any).maps_url) ||
-        (typeof response === 'object' && response && (response as any).url)
+        (typeof response === 'object' && response && responseObj?.maps_url) ||
+        (typeof response === 'object' && response && responseObj?.url)
 
       if (mapsUrl && typeof mapsUrl === 'string') {
         if (typeof window !== 'undefined') window.open(mapsUrl, '_blank', 'noopener,noreferrer')
       } else {
         openInMaps(query, { lat: location?.latitude ?? null, long: location?.longitude ?? null })
       }
-    } catch (e) {
+    } catch {
       setError('Navigation error')
     }
   }

@@ -28,7 +28,7 @@ function SavedItem({
   closesAt,
   distanceKm,
   etaMinutes,
-  verified: _verified = false,
+  verified = false,
   imageUrl,
   isFavorite = true,
   onExplore,
