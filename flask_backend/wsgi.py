@@ -1,13 +1,24 @@
+print("🚀 Starting app.py import...")
+
 import os
+print("✅ os imported")
+
 import sys
+print("✅ sys imported")
 
 # Add the current directory to Python path to avoid import issues
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+print("✅ sys.path updated")
 
 # Create a minimal Flask app first to ensure Gunicorn can find it
 from flask import Flask
+print("✅ Flask imported")
+
 app = Flask(__name__)
+print("✅ Flask app created")
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+print("✅ Config set")
 
 @app.route('/')
 def health_check():
@@ -20,6 +31,8 @@ def health_check():
 @app.route('/api/health')
 def api_health():
     return {"status": "healthy", "service": "flask-backend"}
+
+print("✅ Routes defined")
 
 # Try to import and initialize the full app
 try:
@@ -51,6 +64,8 @@ except Exception as e:
 print(f"🔍 Final app object: {app}")
 print(f"🔍 App type: {type(app)}")
 print(f"🔍 App has routes: {len(app.url_map._rules)}")
+
+print("🎉 app.py import completed successfully!")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
