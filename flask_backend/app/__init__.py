@@ -15,7 +15,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    cors.init_app(app)
+    cors.init_app(app) 
     jwt.init_app(app)
     mail.init_app(app)
 
@@ -36,6 +36,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
                 "auth": "/api/auth",
                 "users": "/api/users",
                 "health": "/api/health",
+                "stores": "/api/stores",
                 "chatbot": "/api/ai",
             },
         }

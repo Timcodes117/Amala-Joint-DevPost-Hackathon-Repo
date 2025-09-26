@@ -7,28 +7,28 @@ function NotificationsPage() {
     {
       id: 1,
       title: "Store Verification Approved",
-      message: "Your verification for 'The Amala Joint' has been approved. Thank you for contributing!",
+      message: "Your verification for &lsquo;The Amala Joint&rsquo; has been approved. Thank you for contributing!",
       timestamp: "2 hours ago",
       read: false
     },
     {
       id: 2, 
       title: "New Store Near You",
-      message: "A new store 'Lagos Kitchen' has been added in your area. Check it out!",
+      message: "A new store &lsquo;Lagos Kitchen&rsquo; has been added in your area. Check it out!",
       timestamp: "Yesterday",
       read: true
     },
     {
       id: 3,
       title: "Verification Request",
-      message: "Can you help verify 'Mama Put Corner'? It's just 2km from your location.",
+      message: "Can you help verify &lsquo;Mama Put Corner&rsquo;? It&apos;s just 2km from your location.",
       timestamp: "2 days ago",
       read: true
     },
     {
       id: 4,
       title: "Community Achievement",
-      message: "You've helped verify 5 stores! Keep up the great work.",
+      message: "You&apos;ve helped verify 5 stores! Keep up the great work.",
       timestamp: "1 week ago",
       read: true
     }

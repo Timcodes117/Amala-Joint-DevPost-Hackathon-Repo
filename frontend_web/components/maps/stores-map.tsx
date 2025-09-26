@@ -2,8 +2,10 @@
 
 import { GoogleMap, MarkerF, MarkerClustererF, InfoWindowF, useJsApiLoader } from "@react-google-maps/api";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import SpotCard from "../spot-card";
+import { useSavedPlaces } from "@/hooks/useSavedPlaces";
 
 const containerStyle = {
   width: "100%",
@@ -46,8 +48,30 @@ const lightMapStyle = [
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
 ];
 
+type CombinedPlace = {
+  id: string;
+  name: string;
+  position: google.maps.LatLngLiteral;
+  address?: string;
+  rating?: number;
+  price_level?: number;
+  verified?: boolean;
+  source?: string;
+  imageUrl?: string;
+  photos?: any[];
+  opening_hours?: any;
+  geometry?: any;
+  place_id?: string;
+  opensAt?: string;
+  closesAt?: string;
+  phone?: string;
+  description?: string;
+};
+
 export default function StoresMap() {
+  const router = useRouter();
   const { theme } = useTheme();
+  const { isPlaceSaved } = useSavedPlaces();
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY as string,
@@ -56,14 +80,8 @@ export default function StoresMap() {
 
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
   const [showPopover, setShowPopover] = useState(false);
-  const [selectedStore, setSelectedStore] = useState<{
-    id: string;
-    name: string;
-    position: google.maps.LatLngLiteral;
-  } | null>(null);
-  const [stores, setStores] = useState<
-    { id: string; name: string; position: google.maps.LatLngLiteral }[]
-  >([]);
+  const [selectedStore, setSelectedStore] = useState<CombinedPlace | null>(null);
+  const [stores, setStores] = useState<CombinedPlace[]>([]);
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
@@ -85,35 +103,65 @@ export default function StoresMap() {
     }
   }, []);
 
-  // Fetch nearby stores using Places API when map and user location are ready
+  // Fetch combined places from backend Amala Finder when map and user location are ready
   useEffect(() => {
     if (!isLoaded || !mapRef.current || !userLocation) return;
-    if (!google.maps.places) return;
 
-    const service = new google.maps.places.PlacesService(mapRef.current);
-    const request: google.maps.places.PlaceSearchRequest = {
-      location: userLocation,
-      radius: 5000, // 5km
-      type: "store",
-      openNow: false,
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    const fetchPlaces = async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/ai/amala_finder`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            location: { lat: userLocation.lat, long: userLocation.lng },
+            query: "amala",
+          }),
+        });
+        const json = await resp.json();
+        const places = json?.data?.places || json?.places || [];
+        const mapped: CombinedPlace[] = (places as any[])
+          .map((p) => {
+            const placeId: string = p.place_id || p.id;
+            const name: string = p.name;
+            const addr: string | undefined = p.formatted_address || p.vicinity || p.address;
+            const geo = p.geometry?.location;
+            const lat = geo?.lat;
+            const lng = geo?.lng ?? geo?.long;
+            if (!placeId || !name || typeof lat !== "number" || typeof lng !== "number") {
+              return null;
+            }
+            return {
+              id: placeId,
+              name,
+              address: addr,
+              rating: typeof p.rating === "number" ? p.rating : undefined,
+              price_level: typeof p.price_level === "number" ? p.price_level : undefined,
+              verified: (p.source === "verified") || p.verifiedBy === "amala-joint" || (typeof placeId === "string" && placeId.startsWith("amala_")),
+              source: p.source,
+              position: { lat, lng },
+              photos: p.photos,
+              opening_hours: p.opening_hours,
+              imageUrl: p.imageUrl,
+              opensAt: p.opensAt,
+              closesAt: p.closesAt,
+              phone: p.phone,
+              description: p.description,
+            } as CombinedPlace;
+          })
+          .filter(Boolean) as CombinedPlace[];
+        setStores(mapped);
+      } catch (e) {
+        setStores([]);
+      }
     };
 
-    service.nearbySearch(request, (results, status) => {
-      if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-        setStores([]);
-        return;
-      }
-
-      const mapped = results
-        .filter((r): r is google.maps.places.PlaceResult & { geometry: { location: google.maps.LatLng } } => !!r.place_id && !!r.name && !!r.geometry?.location)
-        .map((r) => ({
-          id: r.place_id as string,
-          name: r.name as string,
-          position: { lat: r.geometry!.location.lat(), lng: r.geometry!.location.lng() },
-        }));
-
-      setStores(mapped);
-    });
+    fetchPlaces();
   }, [isLoaded, userLocation]);
 
   useEffect(() => {
@@ -222,22 +270,33 @@ export default function StoresMap() {
             pixelOffset: new google.maps.Size(0, -32) // Offset by marker height
           }}
         >
-          {/* <div style={{ padding: "8px", textAlign: "center" }}> */}
           <SpotCard
-            key={"index-jey"}
-            name={`The Amala Joint 1`}
-            location={'This is where I type the location'}
-            opensAt={'8:00'}
-            closesAt={'21:00'}
-            distanceKm={12}
-            etaMinutes={20}
-            rating={4.8}
-            verified
-            imageUrl={'/images/amala-billboard.png'}
-            onDirections={() => {}}
-            onExplore={() => {}}
+            key={selectedStore.id}
+            name={selectedStore.name}
+            location={selectedStore.address || "Unknown address"}
+            opensAt={selectedStore.opensAt || (selectedStore.opening_hours?.open_now ? 'Open' : 'Closed')}
+            closesAt={selectedStore.closesAt || (selectedStore.opening_hours?.open_now ? 'Now' : 'Now')}
+            distanceKm={Math.round(Math.random() * 10 + 1)}
+            etaMinutes={Math.round(Math.random() * 30 + 5)}
+            rating={selectedStore.rating ?? 4.0}
+            verified={!!selectedStore.verified}
+            imageUrl={
+              selectedStore.imageUrl
+                || (selectedStore.photos?.[0]?.photo_reference
+                  ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${selectedStore.photos[0].photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
+                  : '/images/amala-billboard.png')
+            }
+            isFavorite={isPlaceSaved(selectedStore.id)}
+            onDirections={() => {
+              const { lat, lng } = selectedStore.position;
+              const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+              window.open(url, '_blank');
+            }}
+            onExplore={() => {
+              router.push(`/home/${selectedStore.id}`);
+            }}
+            onToggleFavorite={() => {}}
           />
-          {/* </div> */}
         </InfoWindowF>
       )}
       

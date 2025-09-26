@@ -51,7 +51,7 @@ export default function UserLocationMap() {
   const { theme } = useTheme();
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY as string,
+    googleMapsApiKey: 'AIzaSyALRlD6xsTbkQAnOaBTNyvymzrU908sMB8',
     libraries: LIBRARIES, // ✅ stable reference
   });
 

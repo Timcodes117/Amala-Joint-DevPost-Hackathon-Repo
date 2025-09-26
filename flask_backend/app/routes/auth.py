@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template, url_for, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+import bcrypt
 from datetime import datetime, timedelta
 from ..extensions import mongo_client
 from ..utils.mongo import serialize_document, to_object_id
@@ -57,7 +58,7 @@ def signup():
     user_doc = {
         'name': data['name'],
         'email': data['email'],
-        'password': data['password'],
+        'password': bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
         'phone': data.get('phone'),
         'age': data.get('age'),
         'created_at': now,
@@ -75,6 +76,7 @@ def signup():
     user_doc.pop('password', None)
 
     # Send verification email
+    mail_sent = False
     try:
         token = generate_email_token(user_doc['email'])
         frontend_base = current_app.config.get('FRONTEND_BASE_URL', 'https://amala-joint.vercel.app').rstrip('/')
@@ -85,8 +87,9 @@ def signup():
         # If you add a template, you can use html instead
         # msg.html = render_template('email/verify.html', verify_url=verify_url, name=user_doc['name'])
         mail.send(msg)
-    except Exception:
-        pass
+        mail_sent = True
+    except Exception as e:
+        current_app.logger.exception('Mail send failed')
 
     return jsonify({
         'success': True,
@@ -95,6 +98,7 @@ def signup():
             'user': user_doc,
             'access_token': access_token,
             'refresh_token': refresh_token,
+            'mail_sent': mail_sent,
         }
     }), 201
 
@@ -106,7 +110,8 @@ def login():
         return jsonify({'success': False, 'error': 'Email and password are required'}), 400
     db = mongo_client.get_db()
     user = db.users.find_one({'email': data['email']})
-    if not user or user.get('password') != data['password']:
+    # Ensure password is present and hashed, then verify using bcrypt
+    if not user or not user.get('password') or not bcrypt.checkpw(data['password'].encode('utf-8'), str(user.get('password')).encode('utf-8')):
         return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
 
     user_id = str(user['_id'])
@@ -170,6 +175,44 @@ def verify_email(token: str):
 
     db.users.update_one({'_id': user['_id']}, {'$set': {'email_verified': True, 'updated_at': datetime.utcnow().isoformat()}})
     return jsonify({'success': True, 'message': 'Email verified successfully'}), 200
+
+
+@auth_bp.post('/resend-verification')
+def resend_verification():
+    data = request.get_json() or {}
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email is required'}), 400
+    
+    db = mongo_client.get_db()
+    user = db.users.find_one({'email': email})
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+    
+    if user.get('email_verified'):
+        return jsonify({'success': False, 'error': 'Email already verified'}), 400
+    
+    # Send verification email
+    mail_sent = False
+    try:
+        token = generate_email_token(user['email'])
+        frontend_base = current_app.config.get('FRONTEND_BASE_URL', 'https://amala-joint.vercel.app').rstrip('/')
+        verify_url = f"{frontend_base}/auth/verify-user/{token}"
+        msg = Message(subject='Verify your Amala account')
+        msg.recipients = [user['email']]
+        msg.body = f"Please verify your account by visiting: {verify_url}"
+        mail.send(msg)
+        mail_sent = True
+    except Exception as e:
+        current_app.logger.exception('Mail send failed')
+        return jsonify({'success': False, 'error': 'Failed to send verification email'}), 500
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Verification email sent successfully',
+        'mail_sent': mail_sent
+    }), 200
 
 
 @auth_bp.post('/google')
@@ -254,5 +297,22 @@ def google_login():
         return jsonify({'success': False, 'error': f'Expired Firebase token: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': f'Google auth failed: {str(e)}'}), 500
+
+
+@auth_bp.get('/debug/mail-config')
+# @jwt_required()
+def debug_mail_config():
+    cfg = current_app.config
+    safe = {
+        'MAIL_SERVER': cfg.get('MAIL_SERVER'),
+        'MAIL_PORT': cfg.get('MAIL_PORT'),
+        'MAIL_USE_TLS': cfg.get('MAIL_USE_TLS'),
+        'MAIL_USE_SSL': cfg.get('MAIL_USE_SSL'),
+        'MAIL_SUPPRESS_SEND': cfg.get('MAIL_SUPPRESS_SEND'),
+        'MAIL_DEFAULT_SENDER': cfg.get('MAIL_DEFAULT_SENDER'),
+        'MAIL_USERNAME_set': bool(cfg.get('MAIL_USERNAME')),
+        'FRONTEND_BASE_URL': cfg.get('FRONTEND_BASE_URL'),
+    }
+    return jsonify({'success': True, 'data': safe}), 200
 
 

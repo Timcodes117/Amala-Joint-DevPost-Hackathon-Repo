@@ -3,6 +3,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { MapPinned, Upload } from 'lucide-react'
+import { useStores } from '@/contexts/StoreContext'
+import { useApp } from '@/contexts/AppContext'
+import AsyncSelect from 'react-select/async'
+import { axiosPostMultiPart } from '@/utils/http/api'
 
 type TimeOption = { label: string; value: string }
 
@@ -10,10 +14,31 @@ interface StoreFormValues {
   name: string
   phone: string
   location: string
+  latitude?: number
+  longitude?: number
   opensAt: string
   closesAt: string
   description: string
   file: File | null
+}
+
+interface AddressSuggestion {
+  place_id: string
+  formatted_address: string
+  geometry: {
+    location: {
+      lat: number
+      lng: number
+    }
+  }
+}
+
+interface SelectOption {
+  value: string
+  label: string
+  lat: number
+  lng: number
+  place_id: string
 }
 
 interface StoreFormProps {
@@ -32,10 +57,14 @@ function buildTimeOptions(): TimeOption[] {
 
 export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) {
   const timeOptions = useMemo(buildTimeOptions, [])
+  const { addStore, fetchUserStores } = useStores()
+  const { location, getCurrentLocation } = useApp()
   const [values, setValues] = useState<StoreFormValues>({
     name: '',
     phone: '',
     location: '',
+    latitude: undefined,
+    longitude: undefined,
     opensAt: '09:00',
     closesAt: '23:00',
     description: '',
@@ -43,11 +72,110 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedAddress, setSelectedAddress] = useState<SelectOption | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const DRAFT_KEY = 'store_form_draft_v1'
 
   function update<K extends keyof StoreFormValues>(key: K, value: StoreFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }))
+  }
+
+  // Address autocomplete functionality using Google Places API (client-side)
+  const loadAddressOptions = async (inputValue: string) => {
+    if (inputValue.length < 3) {
+      return []
+    }
+
+    try {
+      // Use the new Google Places AutocompleteSuggestion API
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(inputValue)}&types=establishment|geocode&components=country:ng&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
+      )
+      
+      const data = await response.json()
+      
+      if (data.status === 'OK' && data.predictions) {
+        const options = data.predictions.map((prediction: any) => ({
+          value: prediction.description,
+          label: prediction.description,
+          place_id: prediction.place_id,
+          lat: 0, // Will be filled when selected
+          lng: 0, // Will be filled when selected
+        }))
+        console.log('Address options loaded:', options)
+        return options
+      }
+      
+      return []
+    } catch (error) {
+      console.error('Error searching addresses:', error)
+      return []
+    }
+  }
+
+  const handleAddressChange = async (selectedOption: SelectOption | null) => {
+    setSelectedAddress(selectedOption)
+    if (selectedOption) {
+      update('location', selectedOption.value)
+      
+      // Get coordinates using Google Places Details REST API
+      if (selectedOption.place_id) {
+        try {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedOption.place_id}&fields=geometry,formatted_address&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
+          )
+          const data = await response.json()
+          
+          if (data.status === 'OK' && data.result.geometry) {
+            const lat = data.result.geometry.location.lat
+            const lng = data.result.geometry.location.lng
+            
+            update('latitude', lat)
+            update('longitude', lng)
+            
+            // Update the selected option with coordinates
+            setSelectedAddress({
+              ...selectedOption,
+              lat,
+              lng
+            })
+          }
+        } catch (error) {
+          console.error('Error getting place details:', error)
+        }
+      }
+    } else {
+      update('location', '')
+      update('latitude', undefined)
+      update('longitude', undefined)
+    }
+  }
+
+  const handleUseCurrentLocation = async () => {
+    try {
+      // Use the existing getCurrentLocation from AppContext
+      await getCurrentLocation()
+      
+      // Update form values with the location from context
+      if (location.latitude && location.longitude && location.address) {
+        update('latitude', location.latitude)
+        update('longitude', location.longitude)
+        update('location', location.address)
+        
+        // Update react-select value
+        const currentLocationOption: SelectOption = {
+          value: location.address,
+          label: location.address,
+          lat: location.latitude,
+          lng: location.longitude,
+          place_id: 'current_location'
+        }
+        setSelectedAddress(currentLocationOption)
+      }
+    } catch (error) {
+      console.error('Error getting current location:', error)
+      setError('Unable to get your current location')
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -66,12 +194,69 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
       if (onSubmit) {
         await onSubmit(values)
       } else {
-        // Default no-op: emulate request
-        await new Promise((r) => setTimeout(r, 600))
-        console.log('Store submitted:', values)
+        // Submit to backend API
+        const formData = new FormData()
+        formData.append('name', values.name)
+        formData.append('phone', values.phone)
+        formData.append('location', values.location)
+        if (values.latitude !== undefined) {
+          formData.append('latitude', values.latitude.toString())
+        }
+        if (values.longitude !== undefined) {
+          formData.append('longitude', values.longitude.toString())
+        }
+        formData.append('opensAt', values.opensAt)
+        formData.append('closesAt', values.closesAt)
+        formData.append('description', values.description)
+        if (values.file) {
+          formData.append('image', values.file)
+        }
+
+        // Get JWT token from localStorage
+        const token = localStorage.getItem('access_token')
+        
+        const response = await axiosPostMultiPart('/api/stores/add', formData, {
+          Authorization: `Bearer ${token}`,
+        })
+
+        const result = response.data
+
+        if (!response.status || response.status >= 400) {
+          throw new Error(result.error || 'Failed to submit store')
+        }
+
+        console.log('Store submitted successfully:', result)
+        setError(null)
+        
+        // Add the new store to the context
+        if (result.store) {
+          addStore(result.store)
+        }
+        
+        // Refresh user stores to include the new store
+        fetchUserStores()
+        
+        // Clear form after successful submission
+        setValues({
+          name: '',
+          phone: '',
+          location: '',
+          latitude: undefined,
+          longitude: undefined,
+          opensAt: '09:00',
+          closesAt: '23:00',
+          description: '',
+          file: null,
+        })
+        setSelectedAddress(null)
+        
+        // Clear draft from localStorage
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(DRAFT_KEY)
+        }
       }
     } catch (err) {
-      setError('Failed to submit. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -96,6 +281,28 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
       setValues((prev) => ({ ...prev, ...parsed, file: null }))
     } catch {}
   }, [])
+
+  // Watch for location changes from AppContext
+  useEffect(() => {
+    if (location.latitude && location.longitude && location.address) {
+      // Only update if the form location is empty or if we're using current location
+      if (!values.location || selectedAddress?.place_id === 'current_location') {
+        update('latitude', location.latitude)
+        update('longitude', location.longitude)
+        update('location', location.address)
+        
+        // Update react-select value
+        const currentLocationOption: SelectOption = {
+          value: location.address,
+          label: location.address,
+          lat: location.latitude,
+          lng: location.longitude,
+          place_id: 'current_location'
+        }
+        setSelectedAddress(currentLocationOption)
+      }
+    }
+  }, [location.latitude, location.longitude, location.address])
 
   // Save draft (excluding file)
   function handleSaveDraft() {
@@ -142,20 +349,86 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
         </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-5 items-end'>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-5  '>
         <div className='flex flex-col gap-2'>
           <label className='text-sm font-semibold'>Enter Location</label>
           <div className='relative'>
-            <input
-              value={values.location}
-              onChange={(e) => update('location', e.target.value)}
-              placeholder='Enter store location'
-              className='w-full px-5 py-3 pr-12 rounded-full bg-transparent border border-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500'
+            <AsyncSelect
+              value={selectedAddress}
+              onChange={handleAddressChange}
+              loadOptions={loadAddressOptions}
+              placeholder="Search for an address..."
+              isSearchable
+              isClearable
+              noOptionsMessage={({ inputValue }) => 
+                inputValue.length < 3 ? 'Type at least 3 characters to search' : 'No addresses found'
+              }
+              loadingMessage={() => "Searching addresses..."}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              instanceId="address-select"
+              styles={{
+                control: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: 'transparent',
+                  border: '1px solid #374151',
+                  borderRadius: '9999px',
+                  minHeight: '48px',
+                  boxShadow: state.isFocused ? '0 0 0 2px #ef4444' : 'none',
+                  '&:hover': {
+                    border: '1px solid #6b7280',
+                  },
+                }),
+                input: (provided) => ({
+                  ...provided,
+                  color: 'white',
+                }),
+                placeholder: (provided) => ({
+                  ...provided,
+                  color: '#9ca3af',
+                }),
+                singleValue: (provided) => ({
+                  ...provided,
+                  color: 'white',
+                }),
+                menu: (provided) => ({
+                  ...provided,
+                  backgroundColor: '#1f2937',
+                  border: '1px solid #374151',
+                  borderRadius: '8px',
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  backgroundColor: state.isFocused ? '#374151' : 'transparent',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#374151',
+                  },
+                }),
+                noOptionsMessage: (provided) => ({
+                  ...provided,
+                  color: '#9ca3af',
+                }),
+                loadingMessage: (provided) => ({
+                  ...provided,
+                  color: '#9ca3af',
+                }),
+              }}
             />
-            <div className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400'>
-              <MapPinned size={22} />
+            <button
+              type='button'
+              onClick={handleUseCurrentLocation}
+              className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors z-10'
+              title='Use current location'
+            >
+              <MapPinned size={18} />
+            </button>
             </div>
-          </div>
+          {values.latitude && values.longitude && (
+            <p className='text-xs text-green-400'>
+              ✓ Location coordinates: {values.latitude.toFixed(6)}, {values.longitude.toFixed(6)}
+            </p>
+          )}
         </div>
 
         <div className='flex flex-col gap-2'>
@@ -248,10 +521,11 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
           </button>
           {/* Replaced by mobile CTA in /home/new: Add a Store */}
           <button
-            // onClick={}
-            className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm max-w-[200px]"
+            type="submit"
+            disabled={submitting}
+            className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm max-w-[200px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit for Review
+            {submitting ? 'Submitting...' : 'Submit for Review'}
           </button>
       </div>
     </form>

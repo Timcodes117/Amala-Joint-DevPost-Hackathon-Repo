@@ -1,4 +1,4 @@
-import axios, { AxiosRequestHeaders } from "axios";
+import axios from "axios";
 
 const headers = {
   "Content-Type": "application/json",
@@ -10,7 +10,7 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:
 export const axiosPost = async (
   endpoint: string,
   data: FormData | Record<string, string | number> = {},
-  additionalHeaders?: AxiosRequestHeaders
+  additionalHeaders?: Record<string, string>
 ) => {
   return axios.post(`${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` , data, {
     headers: { ...headers, ...additionalHeaders },
@@ -20,7 +20,7 @@ export const axiosPost = async (
 export const axiosPostMultiPart = async (
   endpoint: string,
   file: FormData,
-  additionalHeaders?: AxiosRequestHeaders
+  additionalHeaders?: Record<string, string>
 ) => {
   return axios.post(`${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` , file, {
     headers: { ...headers, ...additionalHeaders, "Content-Type": "multipart/form-data" },
@@ -29,7 +29,7 @@ export const axiosPostMultiPart = async (
 
 export const axiosGet = async (
   endpoint: string,
-  additionalHeaders?: AxiosRequestHeaders
+  additionalHeaders?: Record<string, string>
 ) => {
   return axios.get(`${endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`}`, {
     headers: { ...headers, ...additionalHeaders },
@@ -38,7 +38,7 @@ export const axiosGet = async (
 
 export const axiosDelete = async (
   endpoint: string,
-  additionalHeaders?: AxiosRequestHeaders
+  additionalHeaders?: Record<string, string>
 ) => {
   return axios.delete(`${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` , {
     headers: { ...headers, ...additionalHeaders },

@@ -5,7 +5,15 @@ from flask import current_app
 from pymongo import MongoClient, ASCENDING
 
 
-cors = CORS()
+cors = CORS(
+    origins=[
+        "http://localhost:3000",
+        "https://amala-joint.vercel.app"
+    ],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True
+)
 jwt = JWTManager()
 mail = Mail()
 
@@ -36,5 +44,11 @@ def init_mongo_indexes():
     db = mongo_client.get_db()
     # Users indexes
     db.users.create_index([('email', ASCENDING)], unique=True, name='idx_users_email_unique')
+    
+    # Stores indexes
+    db.stores.create_index([('name', ASCENDING)], name='idx_stores_name')
+    db.stores.create_index([('location', ASCENDING)], name='idx_stores_location')
+    db.stores.create_index([('is_verified', ASCENDING)], name='idx_stores_verified')
+    db.stores.create_index([('created_at', ASCENDING)], name='idx_stores_created_at')
 
 

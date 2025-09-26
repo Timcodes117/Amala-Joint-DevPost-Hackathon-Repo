@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Upload } from 'lucide-react'
+import { axiosPostMultiPart } from '@/utils/http/api'
 
 type VerifyFormValues = {
   reason: string
@@ -38,11 +39,40 @@ export default function VerifyStorePage() {
     if (!values.proofUrl.trim()) return setError('Proof link is required')
     try {
       setSubmitting(true)
-      await new Promise((r) => setTimeout(r, 600))
-      console.log('Verify request for id', params?.id, values)
-      // TODO: integrate API
-    } catch {
-      setError('Failed to submit. Please try again.')
+      
+      // Submit verification to backend
+      const formData = new FormData()
+      formData.append('reason', values.reason)
+      formData.append('proofUrl', values.proofUrl)
+      if (values.file) {
+        formData.append('image', values.file)
+      }
+
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('access_token')
+      
+      const response = await axiosPostMultiPart(`/api/stores/${params?.id}/verify`, formData, {
+        Authorization: `Bearer ${token}`,
+      })
+
+      const result = response.data
+
+      if (!response.status || response.status >= 400) {
+        throw new Error(result.error || 'Failed to submit verification')
+      }
+
+      console.log('Verification submitted successfully:', result)
+      setError(null)
+      
+      // Clear form after successful submission
+      setValues({
+        reason: '',
+        proofUrl: '',
+        file: null,
+      })
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.')
     } finally {
       setSubmitting(false)
     }

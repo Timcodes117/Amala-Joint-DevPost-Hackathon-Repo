@@ -7,36 +7,61 @@ import asyncio
 
 import json
 # from IPython.display import display, Markdown
-import google.generativeai as genai
-from google.adk.agents import Agent
-from google.adk.tools import google_search, ToolContext
-#from google.adk.tools import google_search, google_api_tool, ToolContext
-#from IPython.display import display, Markdown
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService, Session
-from google.genai.types import Content, Part
-from google.adk.agents import Agent, SequentialAgent, LoopAgent
+# Try to import Google Generative AI
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Google Generative AI not available: {e}")
+    genai = None
+    GENAI_AVAILABLE = False
+
+# Try to import Google ADK (Agent Development Kit)
+try:
+    from google.adk.agents import Agent, SequentialAgent, LoopAgent
+    from google.adk.tools import google_search, ToolContext
+    from google.adk.runners import Runner
+    from google.adk.sessions import InMemorySessionService, Session
+    from google.genai.types import Content, Part
+    ADK_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Google ADK not available: {e}")
+    Agent = SequentialAgent = LoopAgent = None
+    google_search = ToolContext = Runner = None
+    InMemorySessionService = Session = Content = Part = None
+    ADK_AVAILABLE = False
+
+# Try to import helpers
+try:
+    from helpers.agent_query import session_service, my_user_id, run_agent_query
+    from helpers.translate_helper import translate_text, detect_language
+    HELPERS_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Helper modules not available: {e}")
+    session_service = my_user_id = run_agent_query = None
+    translate_text = detect_language = None
+    HELPERS_AVAILABLE = False
+
 from getpass import getpass
-from helpers.agent_query import session_service, my_user_id, run_agent_query
-
-
-
-from helpers.translate_helper import translate_text, detect_language
-from getpass import getpass
-from helpers.agent_query import session_service, my_user_id, run_agent_query
 
 # Set up your API key
-api_key = 'AIzaSyBIRn4U9-rPQg3bVFWweJR-RLRQhRpngUg'
+api_key = 'AIzaSyBbZHx_zJZL8ga_JBxI8d7piyMyh1T7Rko'
 
-# Get Your API Key HERE 👉 https://codelabs.developers.google.com/onramp/instructions#0
-# Configure the generative AI library with the provided key
-genai.configure(api_key=api_key)
-model=genai.GenerativeModel("gemini-2.5-flash")
+# Configure the generative AI library with the provided key (if available)
+if GENAI_AVAILABLE and genai:
+    try:
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        print("✅ Google Generative AI configured successfully!")
+    except Exception as e:
+        print(f"Warning: Failed to configure Google Generative AI: {e}")
+        model = None
+else:
+    model = None
+    print("⚠️ Google Generative AI not available")
 
 # Set the API key as an environment variable for ADK to use
-os.environ['GOOGLE_API_KEY'] = api_key
-
-print("✅ API Key configured successfully! Let the fun begin.")
+# os.environ['GOOGLE_API_KEY'] = api_key
 def safe_extract_json(text: str):
     """Ensure the AI response is valid JSON array."""
     text = text.strip()
@@ -95,18 +120,8 @@ def create_amala_finder_agent():
 
         Guidelines:
         1. **Local Search**: Use Google Search (and if available Google Places API) to find actual Amala restaurants/joints near the provided coordinates.
-        2. **Structured Output**: Return results as an ARRAY OF JSON OBJECTS with this schema:
-           {
-             id: string,              // unique identifier
-             name: string,            // restaurant/shop name
-             description: string,     // short description of the spot
-             rating: float,           // average user rating (if available)
-             address: string,
-             price_range: string,     // e.g., "cheap", "moderate", "expensive"
-             photos: [string],        // array of image URLs
-             location: { long: float, lat: float },
-             hours: string            // opening hours if available
-           }
+        2. **Presentation**: Prefer clean Markdown, not raw JSON. Use a concise bullet list. Each item should look like:
+           - **Name** — short reason; rating ⭐, price_range; [Directions](https://maps.google.com/?q=lat,long)
         3. **Accuracy**: Ensure each object corresponds to a real Amala spot. 
         4. **Conciseness**: Keep descriptions short and focused on why the spot is good.
         5. **Nigeria Focus**: Assume the user is in Nigeria; all results must be locally relevant.
@@ -154,18 +169,7 @@ foodie_agent = Agent(
 
     Guidelines:
      1. **Local Search**: Use Google Search (and if available Google Places API) to find actual Amala restaurants/joints near the provided coordinates.
-    2. *Structured Output*: Return results as an ARRAY OF JSON OBJECTS with this schema:
-       {
-         id: string,              // unique identifier
-         name: string,            // restaurant/shop name
-         description: string,     // short description of the spot
-         rating: float,           // average user rating (if available)
-         address: string,
-         price_range: string,     // e.g., "cheap", "moderate", "expensive"
-         photos: [string],        // array of image URLs
-         location: { long: float, lat: float },
-         hours: string            // opening hours if available
-       }
+    2. **Presentation**: Prefer clean Markdown, not raw JSON. Bullet list per spot: '- **Name** — short reason; rating ⭐, price_range; [Directions](maps_url)'.
     3. **Accuracy**: Ensure each object corresponds to a real Amala spot. 
     4. **Conciseness**: Keep descriptions short and focused on why the spot is insanely good.
     5. **Nigeria Focus** : Assume the user is in Nigeria; all results must be locally relevant.
@@ -193,24 +197,14 @@ transportation_agent = Agent(
     The user wants to go to: {destination}.
 
     Guidelines: 
-    1. **Strucured Outputs**: Return results as an ARRAY OF JSON OBJETS with schema:
-    {
-        id: string,   // unique identifier
-        description: string,  // short description of the Amala Spot
-        address: string,
-        directions: string,  // directions to the Amala Spot
-        rating: string,  // average rating if possible
-        location: { long: float, lat: float}
-    }
+    1. **Presentation**: Prefer clean Markdown directions, not JSON. List driving steps or a concise summary with a [Maps link](maps_url).
 
     2. **Accuracy**: Ensure each object corresponds to a real Amala Spot.
     3. **Conciseness**: Keep descriptions short and focused on why the Amala Spot is good.
     4. **Nigeria Focus**: Assume the user is in Nigeria: all results must be locally relevant.
     5. using data from place api, improve data in structured output.
 
-    Return ONLY a valid JSON array of Amala spots.
-    Don ot include markdown, code fences, or extra text.
-    The first character must be `[` and the last character must be `]`.   
+    Output Markdown only; do not use code fences.
 
     Analyze the user's full original query to find their starting point.
     Then, provide clear directions from that starting point to {destination}.
@@ -389,13 +383,18 @@ def ai_agent(message: str, lang: str = None) -> str:
     2. Be accurate.
     3. Ensure you speak Yoruba fluently
     """
+    
+    # Check if AI functionality is available
+    if not GENAI_AVAILABLE or not model:
+        return "I'm sorry, AI functionality is currently unavailable. Please try again later."
+    
     # Detect language
-    detected_lang = lang if lang else detect_language(message)
+    detected_lang = lang if lang else (detect_language(message) if HELPERS_AVAILABLE and detect_language else "en")
     print(f"Detected language: {detected_lang}")
 
     # Translate input to English
     text_for_ai = message
-    if detected_lang != "en":
+    if detected_lang != "en" and HELPERS_AVAILABLE and translate_text:
         text_for_ai = translate_text(message, "en")
 
     # Call Gemini model
@@ -414,8 +413,8 @@ def ai_agent(message: str, lang: str = None) -> str:
     # Clean up response
     ai_response_text = clean_response(ai_response_text)
 
-    # Translate back to user’s language
-    if detected_lang != "en":
+    # Translate back to user's language
+    if detected_lang != "en" and HELPERS_AVAILABLE and translate_text:
         final_response = translate_text(ai_response_text, detected_lang)
     else:
         final_response = ai_response_text

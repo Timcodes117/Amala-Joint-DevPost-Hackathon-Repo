@@ -14,8 +14,11 @@ export type VerifyResultsContainerProps = {
   rating: number
   verified?: boolean
   imageUrl?: string
+  verifyCount?: number
   onIgnore?: () => void
   onVerify?: () => void
+  isOwner?: boolean
+  shareUrl?: string
 }
 
 export default function VerifyResultsContainer({
@@ -28,9 +31,22 @@ export default function VerifyResultsContainer({
   rating: _rating,
   verified = false,
   imageUrl,
+  verifyCount = 0,
   onIgnore,
   onVerify,
+  isOwner = false,
+  shareUrl,
 }: VerifyResultsContainerProps) {
+  const [copied, setCopied] = React.useState(false)
+  const { useClipboard } = require('@/contexts/ClipboardContext') as typeof import('@/contexts/ClipboardContext')
+  const { copyToClipboard } = useClipboard()
+
+  const handleShare = async () => {
+    if (!shareUrl) return
+    const ok = await copyToClipboard(shareUrl)
+    setCopied(ok)
+    setTimeout(() => setCopied(false), 1500)
+  }
   return (
     <div className="w-full min-h-fit !border-gray-600/90 p-2 overflow-hidden  relative border-b flex flex-row gap-2">
       <div className="relative w-[100px] h-[100px] min-w-[100px] bg_3 rounded-[12px] overflow-hidden">
@@ -58,28 +74,40 @@ export default function VerifyResultsContainer({
         <div className="mt-2 text_muted flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1">
             <span>
-              {opensAt} - {closesAt}
+              {verifyCount}/3 verifications
             </span>
           </div>
           <span>•</span>
           <span>
-            {distanceKm}km ({etaMinutes} mins)
+            {verified ? 'Verified' : `${3 - verifyCount} remaining`}
           </span>
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={onIgnore}
-            className="flex-1 h-[40px] rounded-full grey text-white px-4 text-sm"
-          >
-            Ignore
-          </button>
-          <button
-            onClick={onVerify}
-            className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm"
-          >
-            Verify
-          </button>
+          {isOwner ? (
+            <button
+              onClick={handleShare}
+              className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm"
+              aria-label="Share verify link"
+            >
+              {copied ? 'Copied!' : 'Share'}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onIgnore}
+                className="flex-1 h-[40px] rounded-full grey text-white px-4 text-sm"
+              >
+                Ignore
+              </button>
+              <button
+                onClick={onVerify}
+                className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm"
+              >
+                Verify
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

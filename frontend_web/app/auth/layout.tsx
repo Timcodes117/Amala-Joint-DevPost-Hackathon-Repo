@@ -4,10 +4,20 @@ import React from 'react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 function AuthLayout({children}:{children: React.ReactNode}) {
 
+  const router = useRouter()
   const { theme } = useTheme()
+
+  React.useEffect(() => {
+    if('user' in localStorage) {
+      if(JSON.parse(localStorage.getItem('user') as string)?.is_verified) {
+        router.replace('/home')
+      } 
+    }
+  }, [])
 
 
   return (

@@ -31,7 +31,7 @@ function SpotCard({
   verified = false,
   imageUrl,
   isFavorite,
-  onExplore: _onExplore,
+  onExplore,
   onDirections,
   onToggleFavorite,
 }: SpotCardProps) {
@@ -111,12 +111,12 @@ function SpotCard({
           >
             Directions
           </button>
-          <Link
-            href={'/home/spot1'}
-            className="flex-1 flex items-center justify-center h-[40px] rounded-full pry-bg text-white px-4 text-[15px]"
+          <button
+            onClick={onExplore}
+            className="flex-1 h-[40px] rounded-full pry-bg text-white px-4 text-[15px]"
           >
             Explore
-          </Link>
+          </button>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
+import { StoreProvider } from "@/contexts/StoreContext";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -28,6 +29,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`}
+          async
+          defer
+        />
+      </head>
       <body
         className={`${plusJakartaSans.variable} antialiased`}
       >
@@ -35,9 +43,11 @@ export default function RootLayout({
           <LanguageProvider>
             <AuthProvider>
               <AppProvider>
-                <Theme >
-                  {children}
-                </Theme>
+                <StoreProvider>
+                  <Theme >
+                    {children}
+                  </Theme>
+                </StoreProvider>
               </AppProvider>
             </AuthProvider>
           </LanguageProvider>

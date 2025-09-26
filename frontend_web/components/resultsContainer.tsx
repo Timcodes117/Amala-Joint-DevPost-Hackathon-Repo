@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Heart, MapPin, Clock, Star, CheckCircle2 } from 'lucide-react'
+import { Heart, MapPin, Clock, Star, CheckCircle2, StarIcon } from 'lucide-react'
 import { HiCheckBadge } from 'react-icons/hi2'
 import Link from 'next/link'
 
 export type ResultsContainerProps = {
+  place_id: string
   name: string
   location: string
   opensAt: string
@@ -35,6 +36,7 @@ function ResultsContainer({
   onExplore,
   onDirections,
   onToggleFavorite,
+  place_id,
 }: ResultsContainerProps) {
   const [localFav, setLocalFav] = useState<boolean>(!!isFavorite)
 
@@ -67,7 +69,7 @@ function ResultsContainer({
       {/* Content */}
       <div className=" w-full">
         <div className="flex items-start justify-between gap-2 w-full">
-          <b className="text-[18px] md:text-[20px] font-semibold line-clamp-2 flex items-center flex-wrap">
+          <b  title={name} className="text-[18px] md:text-[20px] font-semibold !line-clamp-2 flex items-center flex-wrap">
             <span className="inline-flex items-center gap-1 ">
               {name}
               <HiCheckBadge className='pry-color ml-1 min-w-[18px]' size={18}  />
@@ -87,22 +89,23 @@ function ResultsContainer({
         </div>
 
         {/* Location */}
-        <div className="mt-2 text_muted flex items-center gap-1 text-xs">
+        <div className="mt-2 text_muted flex items-center gap-1 flex-row text-xs ">
           <MapPin size={18} />
-          <span>{location}</span>
+          <span className='!line-clamp-1' title={location}>{location}</span>
         </div>
 
         {/* Meta: hours, distance, eta */}
         <div className="mt-2 text_muted flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1">
-            {/* <Clock size={18} /> */}
+            <Clock size={18} />
             <span>
               {opensAt} - {closesAt}
             </span>
           </div>
           <span>•</span>
-          <span>
-            {distanceKm}km ({etaMinutes} mins)
+          <span className='flex items-center gap-1 text-orange-400 text-xs'>
+            <Star size={12} color='orange' fill='orange'  />
+            {rating.toFixed(1)}
           </span>
         </div>
 
@@ -110,12 +113,12 @@ function ResultsContainer({
         <div className="mt-4 flex items-center gap-3">
           <button
             onClick={onDirections}
-            className="flex-1 h-[40px] rounded-full grey text-white px-4 text-sm"
+            className="flex-1 h-[40px] rounded-full grey text-white px-4 text-sm cursor-pointer"
           >
             Directions
           </button>
           <Link
-            href={'/home/spot1'}>
+            href={`/home/${place_id}`}>
           <button
             onClick={onExplore}
             className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm"

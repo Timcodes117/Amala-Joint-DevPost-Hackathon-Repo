@@ -5,10 +5,11 @@ import Image from 'next/image'
 import ThemeToggle from './theme-toggle'
 import { BellDot, MapPinned } from 'lucide-react'
 import MobileSidebar from './MobileSidebar'
+import { useApp } from '@/contexts/AppContext'
 
 function AppHeader() {
   const { theme } = useTheme()
-
+  const { location } = useApp()
   return (
     <header className='w-full h-[50px] flex flex-row gap-4 items-center justify-between'>
       <MobileSidebar />
@@ -23,8 +24,8 @@ function AppHeader() {
                 </Link>
 
                 <div className='flex flex-row gap-3'>
-                    <div className='hidden md:flex flex-row gap-2 p-2 px-3 items-center justify-center rounded-full bg-gray-100/10'>
-                    <MapPinned size={20} /> <p className='text-sm'>Your Location</p>
+                    <div className='hidden md:flex flex-row gap-2 max-w-[250px] p-2 px-3 items-center justify-center rounded-full bg-gray-100/10'>
+                    <MapPinned size={20} className='min-w-[20px]' /> <p className='text-sm !line-clamp-1 text_muted'>{location.address}</p>
                     </div>
                     
                     <div className='flex flex-row gap-2 p-2 items-center justify-center rounded-full bg-gray-100/10'>

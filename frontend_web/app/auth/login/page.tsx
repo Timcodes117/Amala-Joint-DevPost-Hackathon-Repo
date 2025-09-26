@@ -2,6 +2,7 @@
 
 import InputField from '@/components/input-field'
 import React, { useState } from 'react'
+import { ClipLoader } from 'react-spinners'
 import ForgotPasswordModal from '@/components/forgot-password-modal'
 import { axiosPost } from '@/utils/http/api'
 import { getIdTokenWithPopup } from '@/utils/firebase'
@@ -15,14 +16,51 @@ function Page() {
     email: '',
     password: ''
   })
+  const [submitting, setSubmitting] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const handleInputChange = (field: string) => (value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    
+    // Validate password when password field changes
+    if (field === 'password') {
+      validatePassword(value)
+    }
+  }
+
+  const validatePassword = (password: string) => {
+    const errors = []
+    
+    if (password.length < 6) {
+      errors.push('at least 6 characters')
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push('at least one number')
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push('at least one uppercase letter')
+    }
+    
+    if (errors.length > 0) {
+      setPasswordError(`Password must contain ${errors.join(', ')}`)
+    } else {
+      setPasswordError(null)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate password before submitting
+    if (passwordError) {
+      alert(passwordError)
+      return
+    }
+    
     try {
+      setSubmitting(true)
       const payload: LoginPayload = { email: formData.email, password: formData.password }
       const res = await axiosPost('/api/auth/login', payload)
       const apiData = res.data as ApiResponse<LoginResponseData>
@@ -33,10 +71,18 @@ function Page() {
       if (user) localStorage.setItem('user', JSON.stringify(user))
       console.log('Login success:', user)
       alert('Logged in successfully')
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Login failed'
+    } catch (err: unknown) {
+      let message = 'Login failed'
+      if (typeof err === 'object' && err !== null) {
+        const maybeAxios = err as { response?: { data?: { error?: string } } }
+        message = maybeAxios?.response?.data?.error || message
+      } else if (typeof err === 'string') {
+        message = err
+      }
       alert(message)
-      console.error('Login error:', err?.response?.data || err)
+      console.error('Login error:', err)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -52,10 +98,16 @@ function Page() {
       if (user) localStorage.setItem('user', JSON.stringify(user))
       authLogin({ access_token, refresh_token }, user)
       alert('Logged in with Google')
-    } catch (err: any) {
-      const message = err?.response?.data?.error || err?.message || 'Google login failed'
+    } catch (err: unknown) {
+      let message = 'Google login failed'
+      if (typeof err === 'object' && err !== null) {
+        const maybeAxios = err as { response?: { data?: { error?: string } }, message?: string }
+        message = maybeAxios?.response?.data?.error || maybeAxios?.message || message
+      } else if (typeof err === 'string') {
+        message = err
+      }
       alert(message)
-      console.error('Google login error:', err?.response?.data || err)
+      console.error('Google login error:', err)
     }
   }
 
@@ -106,15 +158,20 @@ function Page() {
             />
 
             {/* Password Field */}
-            <InputField
-              type="password"
-              label="Password"
-              placeholder="Create Password"
-              value={formData.password}
-              onChange={handleInputChange('password')}
-              isObscure={true}
-              required
-            />
+            <div>
+              <InputField
+                type="password"
+                label="Password"
+                placeholder="Enter Password"
+                value={formData.password}
+                onChange={handleInputChange('password')}
+                isObscure={true}
+                required
+              />
+              {passwordError && (
+                <p className="text-red-400 text-xs mt-1">{passwordError}</p>
+              )}
+            </div>
 
             {/* Forgot Password Link */}
             <div className='text-left'>
@@ -126,9 +183,11 @@ function Page() {
             {/* Submit Button */}
             <button
               type="submit"
-              className='w-full bg-[#CF3A3A] text-white font-semibold py-4 px-6 rounded-full transition-all duration-200 transform hover:scale-[1.02]'
+              disabled={submitting}
+              className='w-full bg-[#CF3A3A] text-white font-semibold py-4 px-6 rounded-full transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2'
             >
-              Log in
+              {submitting && <ClipLoader color='#ffffff' size={18} />}
+              {submitting ? 'Logging in...' : 'Log in'}
             </button>
           </form>
 

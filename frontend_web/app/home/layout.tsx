@@ -13,6 +13,8 @@ import { SearchResult } from '@/components/search-popover';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import StoreForm from '@/components/store_form';
 import VerifyResultsContainer from '@/components/verify-results-container';
+import { useStores } from '@/contexts/StoreContext';
+import { ClipboardProvider } from '@/contexts/ClipboardContext';
 
 const PageHead = () => (
   <Head>
@@ -32,6 +34,9 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
   const isAddMode = searchParams?.get('mode') === 'add';
   const router = useRouter();
   const isMobileMap = searchParams?.get('mobileMap') === '1';
+
+  // Use the store context
+  const { unverifiedStores, loadingStores, ignoreStore } = useStores()
 
   const DUMMY: SearchResult[] = React.useMemo(
     () =>
@@ -97,22 +102,37 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
                 <hr className='border border_1 my-3' />
               </div>
               <div className='w-full h-full overflow-y-auto csb px-4 pb-4'>
-                {new Array(8).fill(0).map((_, i) => (
-                  <VerifyResultsContainer
-                    key={`m-verify-${i}`}
-                    name={`Amala Spot ${i + 1}`}
-                    location={'Yaba, Lagos'}
-                    opensAt={'08:00'}
-                    closesAt={'21:00'}
-                    distanceKm={Math.round(2 + Math.random() * 8)}
-                    etaMinutes={Math.round(5 + Math.random() * 20)}
-                    rating={4.5}
-                    verified={i % 2 === 0}
-                    imageUrl={'/images/amala-billboard.png'}
-                    onIgnore={() => {}}
-                    onVerify={() => router.push(`/home/verify/${i + 1}`)}
-                  />
-                ))}
+                {loadingStores ? (
+                  <div className='flex items-center justify-center py-8'>
+                    <p className='text-gray-500'>Loading stores...</p>
+                  </div>
+                ) : unverifiedStores.length > 0 ? (
+                  unverifiedStores.map((store, i) => (
+                    <VerifyResultsContainer
+                      key={`m-verify-${store._id}`}
+                      name={store.name}
+                      location={store.location}
+                      opensAt={store.opensAt}
+                      closesAt={store.closesAt}
+                      distanceKm={Math.round(2 + Math.random() * 8)}
+                      etaMinutes={Math.round(5 + Math.random() * 20)}
+                      rating={4.5}
+                      verified={false}
+                      imageUrl={store.imageUrl || '/images/amala-billboard.png'}
+                      verifyCount={store.verify_count || 0}
+                      isOwner={false}
+                      onIgnore={() => {
+                        // Handle ignore using context
+                        ignoreStore(store._id)
+                      }}
+                      onVerify={() => router.push(`/home/verify/${store._id}`)}
+                    />
+                  ))
+                ) : (
+                  <div className='flex items-center justify-center py-8'>
+                    <p className='text-gray-500'>No unverified stores found</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -170,22 +190,37 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
           <StoresMap />
         ) : (
           <div className='w-full h-full overflow-y-auto csb pt-16 px-4'>
-            {new Array(6).fill(0).map((_, i) => (
-              <VerifyResultsContainer
-                key={`verify-${i}`}
-                name={`Amala Spot ${i + 1}`}
-                location={'Yaba, Lagos'}
-                opensAt={'08:00'}
-                closesAt={'21:00'}
-                distanceKm={Math.round(2 + Math.random() * 8)}
-                etaMinutes={Math.round(5 + Math.random() * 20)}
-                rating={4.5}
-                verified={i % 2 === 0}
-                imageUrl={'/images/amala-billboard.png'}
-                onIgnore={() => {}}
-                onVerify={() => router.push(`/home/verify/${i + 1}`)}
-              />
-            ))}
+            {loadingStores ? (
+              <div className='flex items-center justify-center py-8'>
+                <p className='text-gray-500'>Loading stores...</p>
+              </div>
+            ) : unverifiedStores.length > 0 ? (
+              unverifiedStores.map((store, i) => (
+                <VerifyResultsContainer
+                  key={`verify-${store._id}`}
+                  name={store.name}
+                  location={store.location}
+                  opensAt={store.opensAt}
+                  closesAt={store.closesAt}
+                  distanceKm={Math.round(2 + Math.random() * 8)}
+                  etaMinutes={Math.round(5 + Math.random() * 20)}
+                  rating={4.5}
+                  verified={false}
+                  imageUrl={store.imageUrl || '/images/amala-billboard.png'}
+                  verifyCount={store.verify_count || 0}
+                  isOwner={false}
+                  onIgnore={() => {
+                    // Handle ignore using context
+                    ignoreStore(store._id)
+                  }}
+                  onVerify={() => router.push(`/home/verify/${store._id}`)}
+                />
+              ))
+            ) : (
+              <div className='flex items-center justify-center py-8'>
+                <p className='text-gray-500'>No unverified stores found</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -208,7 +243,9 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
 function HomeLayoutWrapper({children}:{children: React.ReactNode}) {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <HomeLayoutContent>{children}</HomeLayoutContent>
+      <ClipboardProvider>
+        <HomeLayoutContent>{children}</HomeLayoutContent>
+      </ClipboardProvider>
     </Suspense>
   )
 }

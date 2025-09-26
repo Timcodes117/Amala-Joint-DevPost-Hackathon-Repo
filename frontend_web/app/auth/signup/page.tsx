@@ -6,6 +6,8 @@ import { axiosPost } from '@/utils/http/api'
 import { getIdTokenWithPopup } from '@/utils/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { ApiResponse, SignupPayload, LoginResponseData } from '@/utils/types'
+import EmailVerificationModal from '@/components/email-verification-modal'
+import { ClipLoader } from 'react-spinners'
 
 
 function Page() {
@@ -16,14 +18,55 @@ function Page() {
     firstName: '',
     lastName: ''
   })
+  const [showVerifyModal, setShowVerifyModal] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendError, setResendError] = useState<string | null>(null)
+  const [resent, setResent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const handleInputChange = (field: string) => (value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    
+    // Validate password when password field changes
+    if (field === 'password') {
+      validatePassword(value)
+    }
+  }
+
+  const validatePassword = (password: string) => {
+    const errors = []
+    
+    if (password.length < 6) {
+      errors.push('at least 6 characters')
+    }
+    
+    if (!/\d/.test(password)) {
+      errors.push('at least one number')
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push('at least one uppercase letter')
+    }
+    
+    if (errors.length > 0) {
+      setPasswordError(`Password must contain ${errors.join(', ')}`)
+    } else {
+      setPasswordError(null)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate password before submitting
+    if (passwordError) {
+      alert(passwordError)
+      return
+    }
+    
     try {
+      setSubmitting(true)
       const payload: SignupPayload = {
         name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
@@ -33,12 +76,26 @@ function Page() {
       const apiData = res.data as ApiResponse<LoginResponseData>
       if (apiData.success) {
         console.log('Signup success:', apiData.data)
+        // Auto-login user after successful signup
+        const { access_token, refresh_token, user } = apiData.data
+        if (access_token) localStorage.setItem('access_token', access_token)
+        if (refresh_token) localStorage.setItem('refresh_token', refresh_token)
+        if (user) localStorage.setItem('user', JSON.stringify(user))
+        authLogin({ access_token, refresh_token }, user)
       }
-      alert('Signup successful. Please check your email to verify your account.')
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Signup failed'
+      setShowVerifyModal(true)
+    } catch (err: unknown) {
+      let message = 'Signup failed'
+      if (typeof err === 'object' && err !== null) {
+        const maybeAxios = err as { response?: { data?: { error?: string } } }
+        message = maybeAxios?.response?.data?.error || message
+      } else if (typeof err === 'string') {
+        message = err
+      }
+      console.error('Signup error:', err)
       alert(message)
-      console.error('Signup error:', err?.response?.data || err)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -54,16 +111,57 @@ function Page() {
       if (user) localStorage.setItem('user', JSON.stringify(user))
       authLogin({ access_token, refresh_token }, user)
       alert('Signed up with Google')
-    } catch (err: any) {
-      const message = err?.response?.data?.error || err?.message || 'Google signup failed'
+    } catch (err: unknown) {
+      let message = 'Google signup failed'
+      if (typeof err === 'object' && err !== null) {
+        const maybeAxios = err as { response?: { data?: { error?: string } }, message?: string }
+        message = maybeAxios?.response?.data?.error || maybeAxios?.message || message
+      } else if (typeof err === 'string') {
+        message = err
+      }
       alert(message)
-      console.error('Google signup error:', err?.response?.data || err)
+      console.error('Google signup error:', err)
     }
   }
 
 
   return (
     <>
+          <EmailVerificationModal
+            isOpen={showVerifyModal}
+            email={formData.email}
+            onClose={() => setShowVerifyModal(false)}
+            onResend={async () => {
+              try {
+                setResending(true)
+                setResendError(null)
+                setResent(false)
+                // Backend currently lacks a resend endpoint. Attempt and handle 404 gracefully.
+                await axiosPost('/api/auth/resend-verification', { email: formData.email })
+                setResent(true)
+              } catch (err: unknown) {
+                let code: number | undefined
+                let msg: string | undefined
+                if (typeof err === 'object' && err !== null) {
+                  const maybeAxios = err as { response?: { status?: number, data?: { error?: string } } }
+                  code = maybeAxios?.response?.status
+                  msg = maybeAxios?.response?.data?.error
+                } else if (typeof err === 'string') {
+                  msg = err
+                }
+                if (code === 404) {
+                  setResendError('Resend endpoint not available. Please try again later.')
+                } else {
+                  setResendError(msg || 'Failed to resend verification email')
+                }
+              } finally {
+                setResending(false)
+              }
+            }}
+            isResending={resending}
+            resendError={resendError}
+            resent={resent}
+          />
           <div className='w-full my-8'>
             <h1 className='text-[28px] font-semibold text-gray-100 mb-2'>Create an Account</h1>
             <p className='text-gray-300 text-sm'>
@@ -129,15 +227,20 @@ function Page() {
             />
 
             {/* Password Field */}
-            <InputField
-              type="password"
-              label="Password"
-              placeholder="Create Password"
-              value={formData.password}
-              onChange={handleInputChange('password')}
-              isObscure={true}
-              required
-            />
+            <div>
+              <InputField
+                type="password"
+                label="Password"
+                placeholder="Create Password"
+                value={formData.password}
+                onChange={handleInputChange('password')}
+                isObscure={true}
+                required
+              />
+              {passwordError && (
+                <p className="text-red-400 text-xs mt-2">{passwordError}</p>
+              )}
+            </div>
 
             {/* Terms & Conditions - tiny checkbox under password */}
             <label className='tiny-checkbox text-sm text-gray-300'>
@@ -153,9 +256,11 @@ function Page() {
             {/* Submit Button */}
             <button
               type="submit"
-              className='w-full bg-[#CF3A3A] text-white font-semibold py-4 px-6 rounded-full transition-all duration-200 transform hover:scale-[1.02]'
+              disabled={submitting}
+              className='w-full bg-[#CF3A3A] text-white font-semibold py-4 px-6 rounded-full transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2'
             >
-              Create Account
+              {submitting && <ClipLoader color='#ffffff' size={18} />}
+              {submitting ? '' : 'Create Account'}
             </button>
           </form>
 
@@ -163,9 +268,9 @@ function Page() {
           {/* Signup Link */}
           <div className='text-center mt-6'>
             <span className='text-gray-300 text-sm'>
-              Don&apos;t have an account yet?{' '}
-              <a href="/auth/signup" className='text-white underline hover:text-gray-300 font-medium'>
-                Create new account
+              Already have an account?{' '}
+              <a href="/auth/login" className='text-white underline hover:text-gray-300 font-medium'>
+                Log in
               </a>
             </span>
           </div>
