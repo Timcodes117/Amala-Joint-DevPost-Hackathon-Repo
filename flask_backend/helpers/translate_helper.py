@@ -25,6 +25,13 @@ def translate_text_mymemory(text: str, source_lang: str = "en-GB", target_lang: 
     except Exception as e:
         return f"Translation error: {str(e)}"
 
+
+def translate_text(text: str, target_lang: str = "yo-NG", source_lang: str = "en-GB") -> str:
+    """
+    Alias for translate_text_mymemory for backward compatibility.
+    """
+    return translate_text_mymemory(text, source_lang, target_lang)
+
 def detect_language_mymemory(text: str) -> str:
     """
     Detect language using MyMemory's auto-detect capability.
@@ -43,6 +50,13 @@ def detect_language_mymemory(text: str) -> str:
         return "yo-NG"  # fallback assumption for Yoruba
     except Exception as e:
         return f"Detection error: {str(e)}"
+
+
+def detect_language(text: str) -> str:
+    """
+    Alias for detect_language_mymemory for backward compatibility.
+    """
+    return detect_language_mymemory(text)
 
 class MyMemoryDetectHelper:
     """

@@ -34,17 +34,15 @@ except ImportError as e:
 # Try to import helpers
 try:
     from helpers.agent_query import session_service, my_user_id, run_agent_query
-    from helpers.translate_helper import translate_text, detect_language
+    from helpers.translate_helper import translate_text_mymemory, detect_language_mymemory
     HELPERS_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Helper modules not available: {e}")
     session_service = my_user_id = run_agent_query = None
-    translate_text = detect_language = None
+    translate_text_mymemory = detect_language_mymemory = None
     HELPERS_AVAILABLE = False
 
 from getpass import getpass
-from helpers.agent_query import session_service, my_user_id, run_agent_query
-from helpers.translate_helper import translate_text_mymemory, detect_language_mymemory
 
 # Set up your API key
 api_key = 'AIzaSyBbZHx_zJZL8ga_JBxI8d7piyMyh1T7Rko'
@@ -375,6 +373,45 @@ def clean_response(text: str) -> str:
     if "." in text:
         text = text.split(".")[0] + "."
     return text
+
+
+def ai_agent(message: str, lang: str = "en") -> str:
+    """
+    Main AI agent function for handling user queries.
+    This is a simplified version that uses the TranslateAgent.
+    """
+    try:
+        if not GENAI_AVAILABLE or not model:
+            return "I'm sorry, AI functionality is currently unavailable. Please try again later."
+        
+        # Use TranslateAgent for translation if needed
+        if HELPERS_AVAILABLE and translate_text_mymemory and detect_language_mymemory:
+            # Detect language
+            detected_lang = detect_language_mymemory(message)
+            
+            # Translate input to English for AI processing
+            text_for_ai = message
+            if detected_lang != "en-GB":
+                text_for_ai = translate_text_mymemory(message, detected_lang, "en-GB")
+            
+            # Generate AI response
+            response = model.generate_content(text_for_ai)
+            ai_response_text = response.text
+            
+            # Translate back to user's language
+            if detected_lang != "en-GB":
+                final_response = translate_text_mymemory(ai_response_text, "en-GB", detected_lang)
+            else:
+                final_response = ai_response_text
+        else:
+            # Fallback without translation
+            response = model.generate_content(message)
+            final_response = response.text
+        
+        return clean_response(final_response)
+        
+    except Exception as e:
+        return f"I encountered an error: {str(e)}"
 
 
 
