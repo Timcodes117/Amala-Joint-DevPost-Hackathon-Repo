@@ -26,14 +26,19 @@ try:
     print("🔄 Attempting to import full app...")
     # Import from the app package (directory)
     from app import create_app as create_full_app
+    print("✅ Successfully imported create_app function")
+    
     full_app = create_full_app()
+    print("✅ Successfully created full app")
     
     # Merge the full app's routes and configuration
     app.config.update(full_app.config)
+    print("✅ Successfully updated config")
     
     # Register blueprints from the full app
     for blueprint in full_app.blueprints.values():
         app.register_blueprint(blueprint)
+    print("✅ Successfully registered blueprints")
     
     print("✅ Full app imported and merged successfully")
     
@@ -42,6 +47,10 @@ except Exception as e:
     print("📝 Running in minimal mode")
     import traceback
     traceback.print_exc()
+
+print(f"🔍 Final app object: {app}")
+print(f"🔍 App type: {type(app)}")
+print(f"🔍 App has routes: {len(app.url_map._rules)}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
