@@ -68,5 +68,6 @@ print(f"🔍 App has routes: {len(app.url_map._rules)}")
 print("🎉 app.py import completed successfully!")
 
 if __name__ == '__main__':
+    # Only run Flask dev server when running locally
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
