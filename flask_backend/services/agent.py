@@ -429,29 +429,29 @@ def ai_agent(message: str, lang: str = "en") -> str:
                 else:
                     text_for_ai = translate_text_mymemory(message, detected_lang, "en-GB")
             
-        # Generate AI response
-        response = model.generate_content(text_for_ai)
-        ai_response_text = response.text
-        
-        # Validate the response
-        if not ai_response_text or not isinstance(ai_response_text, str):
-            return "I received your message but couldn't generate a proper response. Please try again."
-        
-        # Check if the response contains system instruction (indicates model issue)
-        if "You are Amala Bot" in ai_response_text and len(ai_response_text) > 200:
-            return "I received your message but couldn't generate a proper response. Please try again."
-        
-        # Translate back to user's language
-        if detected_lang != "en-GB":
-            final_response = translate_text_mymemory(ai_response_text, "en-GB", detected_lang)
+            # Generate AI response
+            response = model.generate_content(text_for_ai)
+            ai_response_text = response.text
+            
+            # Validate the response
+            if not ai_response_text or not isinstance(ai_response_text, str):
+                return "I received your message but couldn't generate a proper response. Please try again."
+            
+            # Check if the response contains system instruction (indicates model issue)
+            if "You are Amala Bot" in ai_response_text and len(ai_response_text) > 200:
+                return "I received your message but couldn't generate a proper response. Please try again."
+            
+            # Translate back to user's language
+            if detected_lang != "en-GB":
+                final_response = translate_text_mymemory(ai_response_text, "en-GB", detected_lang)
+            else:
+                final_response = ai_response_text
         else:
-            final_response = ai_response_text
-    else:
-        # Fallback without translation
-        response = model.generate_content(message)
-        final_response = response.text
-    
-    return clean_response(final_response)
+            # Fallback without translation
+            response = model.generate_content(message)
+            final_response = response.text
+        
+        return clean_response(final_response)
         
     except Exception as e:
         return f"I encountered an error: {str(e)}"
