@@ -36,6 +36,18 @@ export default function VerifyUserPage() {
         setState('success')
         setMessage(data.message)
         
+        // Update user object in localStorage to mark as verified
+        try {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const user = JSON.parse(storedUser)
+            const updatedUser = { ...user, email_verified: true }
+            localStorage.setItem('user', JSON.stringify(updatedUser))
+          }
+        } catch (error) {
+          console.error('Error updating user in localStorage:', error)
+        }
+        
         // Redirect to home after 2 seconds
         setTimeout(() => {
           router.push('/home')

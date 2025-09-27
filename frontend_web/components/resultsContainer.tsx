@@ -48,7 +48,8 @@ function ResultsContainer({
   // }
 
   return (
-    <div className="w-full min-h-fit !border-gray-600/90 p-2 overflow-hidden  relative border-b flex flex-row gap-2">
+    <Link href={`/home/${place_id}`} className="block">
+      <div className="w-full min-h-fit !border-gray-600/90 p-2 overflow-hidden relative border-b flex flex-row gap-2 hover:bg-gray-800/20 transition-colors cursor-pointer">
       {/* Image + favorite */}
       <div className="relative w-[100px] h-[100px] min-w-[100px] bg_3 rounded-[12px] overflow-hidden">
         {imageUrl ? (
@@ -113,23 +114,29 @@ function ResultsContainer({
         {/* Actions */}
         <div className="mt-4 flex items-center gap-3">
           <button
-            onClick={onDirections}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onDirections?.()
+            }}
             className="flex-1 h-[40px] rounded-full grey text-white px-4 text-sm cursor-pointer"
           >
             Directions
           </button>
-          <Link
-            href={`/home/${place_id}`}>
           <button
-            onClick={onExplore}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onExplore?.()
+            }}
             className="flex-1 h-[40px] rounded-full pry-bg cursor-pointer text-white px-4 text-sm"
           >
             Explore
           </button>
-          </Link>
         </div>
       </div>
-    </div>
+      </div>
+    </Link>
   )
 }
 

@@ -115,6 +115,10 @@ function Page() {
                             setIsLoading(false)
                             return
                         }
+                    } else if (amalaResponse.status === 404) {
+                        // Handle 404 case for Amala stores - redirect to not-found page
+                        router.push('/home/[slug]/not-found')
+                        return
                     }
                 }
                 setError('Amala-joint store not found')
@@ -135,6 +139,11 @@ function Page() {
                 setPlaceDetails(data.data.result)
                 setIsAmalaStore(false)
             } else {
+                // Handle 404 case - redirect to not-found page
+                if (response.status === 404 || data.error?.includes('not found')) {
+                    router.push('/home/[slug]/not-found')
+                    return
+                }
                 setError(data.error || 'Failed to load place details')
             }
         } catch (error) {

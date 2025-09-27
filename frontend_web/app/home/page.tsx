@@ -11,10 +11,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useSavedPlaces } from '@/hooks/useSavedPlaces'
 import { useRouter } from 'next/navigation'
 import { FilterOptions } from '@/components/FilterPopover'
+import VerificationModal from '@/components/verification-modal'
 
   function Page() { 
     const { location, getCurrentLocation } = useApp()
-    const { user, isAuthenticated } = useAuth()
+    const { user, isAuthenticated, setUser } = useAuth()
     const { savePlace, unsavePlace, isPlaceSaved } = useSavedPlaces()
     const router = useRouter()
     const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({
@@ -24,6 +25,7 @@ import { FilterOptions } from '@/components/FilterPopover'
       rating: null,
       price: null
     })
+    const [showVerificationModal, setShowVerificationModal] = useState(false)
 
     // Convert places to SearchResult format for SearchBar compatibility
     const searchResults: SearchResult[] = useMemo(() => {
@@ -36,7 +38,9 @@ import { FilterOptions } from '@/components/FilterPopover'
         verified: place.rating ? place.rating > 4.0 : false,
         rating: place.rating ?? 4.0,
         priceLevel: place.price_level ?? 1,
-        thumbnailUrl: undefined,
+        thumbnailUrl: place.photos && place.photos.length > 0 
+          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
+          : '/images/amala-billboard.png',
       }))
     }, [location.places])
 
@@ -58,6 +62,35 @@ import { FilterOptions } from '@/components/FilterPopover'
       }
     }, []) // Empty dependency array - only run once on mount
 
+    // Check if user needs email verification
+    useEffect(() => {
+      if (isAuthenticated && user && !user.email_verified) {
+        setShowVerificationModal(true)
+      }
+    }, [isAuthenticated, user])
+
+    // Handle 404 errors from spot details
+    useEffect(() => {
+      const handle404Error = () => {
+        // This will be triggered when navigating to a non-existent spot
+        console.log('404 error detected, logging out user')
+      }
+
+      // Listen for navigation errors
+      const originalPush = router.push
+      router.push = (href: string) => {
+        // Check if it's a spot URL that might not exist
+        if (href.includes('/home/') && !href.includes('/home/new') && !href.includes('/home/saved') && !href.includes('/home/profile') && !href.includes('/home/chat')) {
+          // This is a spot URL, we'll handle 404 in the spot page component
+        }
+        return originalPush(href)
+      }
+
+      return () => {
+        router.push = originalPush
+      }
+    }, [router])
+
     // Filter handlers
     const handleApplyFilters = (filters: FilterOptions) => {
       setAppliedFilters(filters)
@@ -76,6 +109,15 @@ import { FilterOptions } from '@/components/FilterPopover'
     const handleSelectResult = (result: SearchResult) => {
       // Navigate to place details
       router.push(`/home/${result.id}`)
+    }
+
+    const handleUserVerified = () => {
+      // Update user in localStorage and context
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const updatedUser = { ...currentUser, email_verified: true }
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      setShowVerificationModal(false)
     }
 
     // No manual refresh button; auto-fetch only
@@ -224,9 +266,16 @@ import { FilterOptions } from '@/components/FilterPopover'
             </Link>
           </div>
         </div>
-      )}
-    </>
-  )
-}
+        )}
+
+        {/* Verification Modal */}
+        <VerificationModal
+          isOpen={showVerificationModal}
+          userEmail={user?.email || ''}
+          onUserVerified={handleUserVerified}
+        />
+      </>
+    )
+  }
 
 export default Page
