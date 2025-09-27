@@ -6,13 +6,13 @@ Word of mouth and scattered online reviews often fall short, leaving hidden gems
 
 ---
 
-## 🚀 Live Demo  
-👉 [View live demo](https://appetize.io/app/b_5rnla2qbgrswravifqqbwyek5y)
+## 🚀 Live Demo  (Web)
+👉 [View live demo](https://amala-joint.vercel.app/)
 
 ---
 
 ## 🚀 Live Demo  
-👉 [View live demo](https://amala-joint.vercel.app/)
+👉 [View live demo](https://appetize.io/app/b_5rnla2qbgrswravifqqbwyek5y)
 
 ---
 
@@ -38,6 +38,11 @@ Word of mouth and scattered online reviews often fall short, leaving hidden gems
 ---
 
 ## 📸 Screenshots  
+![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend_web/public/aj1.png?raw=true "Amala Joint")
+![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend_web/public/aj2.png?raw=true "Amala Joint")
+![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend_web/public/aj3.png?raw=true "Amala Joint")
+![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend_web/public/aj4.png?raw=true "Amala Joint")
+![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend_web/public/aj5.png?raw=true "Amala Joint")
 ![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend/assets/images/IMG-20250914-WA0003.jpg?raw=true "Amala Joint")
 ![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend/assets/images/IMG-20250914-WA0001.jpg?raw=true "Amala Joint")
 ![Amala Joint App](https://github.com/Timcodes117/Amala-Joint-DevPost-Hackathon-Repo/blob/main/frontend/assets/images/IMG-20250914-WA0006.jpg?raw=true "Amala Joint Bot")
