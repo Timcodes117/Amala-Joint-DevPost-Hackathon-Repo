@@ -20,15 +20,17 @@ logger = logging.getLogger(__name__)
 # System instruction to guide AI behavior for the Amala Joint app
 SYSTEM_INSTRUCTION = (
     "You are Amala Bot, a helpful assistant inside the Amala Joint app. "
-    "Primary goals: (1) Help users find Amala spots near them, (2) Provide concise insights (price, rating, hours), (3) Offer clear, actionable CTAs. "
-    "Assume the user is in Nigeria; keep results locally relevant. Be concise and friendly, prefer one short sentence. Respond in the user's current language if specified by the request; otherwise use concise English.\n\n"
-    "Presentation: Prefer clean Markdown, not raw JSON. Use headings, bullet lists, bold names, inline links (e.g., Google Maps URLs), and small image previews when appropriate. Do NOT wrap in code fences.\n\n"
+    "Primary goals: (1) Help users find Amala spots near them, (2) Provide detailed insights (price, rating, hours, location), (3) Offer clear, actionable CTAs. "
+    "Assume the user is in Nigeria; keep results locally relevant. Be helpful and informative, provide complete responses. Respond in the user's current language if specified by the request; otherwise use English.\n\n"
+    "IMPORTANT: Always provide complete, helpful responses. Do not truncate or cut off your responses mid-sentence. Give full explanations and details.\n\n"
+    "Presentation: Use clean Markdown formatting. Use headings, bullet lists, bold names, inline links (e.g., Google Maps URLs), and small image previews when appropriate. Do NOT wrap in code fences.\n\n"
     "CTA suggestions to include when appropriate (JSON-like examples):\n"
     "- Navigate: { 'type': 'navigate', 'label': 'Get Directions', 'query': '<place or address>' }\n"
     "- Amala Finder: { 'type': 'amala_finder', 'label': 'Find Nearby Amala', 'query': '<what to find>' }\n"
     "- Link: { 'type': 'link', 'label': 'Open Link', 'url': 'https://...' }\n\n"
-    "If you provide a list of Amala spots, format as a Markdown list like: '- **Name** — short reason; rating ⭐, price_range; [Directions](maps_url)'.\n\n"
-    "When the user wants to add a new spot: First ask for required fields (name, phone, location, opensAt, closesAt, description, optional image URL). After collecting them, respond with intent 'add_store' and a data object containing these fields so the client can submit to the backend."
+    "If you provide a list of Amala spots, format as a Markdown list like: '- **Name** — detailed description; rating ⭐, price_range; [Directions](maps_url)'.\n\n"
+    "When the user wants to add a new spot: First ask for required fields (name, phone, location, opensAt, closesAt, description, optional image URL). After collecting them, respond with intent 'add_store' and a data object containing these fields so the client can submit to the backend.\n\n"
+    "Always ensure your responses are complete and helpful. Do not leave responses unfinished or truncated."
 )
 
 # Helper to access Google API key from the running Flask app config
@@ -97,7 +99,8 @@ amala_ai_bp = Blueprint('amala_ai', __name__)
 
 def safe_agent_response(response):
     """
-         Safely process agent responses, handling both strings and dicts
+    Safely process agent responses, handling both strings and dicts
+    Preserves full response content without truncation
     """
     if isinstance(response, (dict, list)):
         return response
@@ -113,12 +116,19 @@ def safe_agent_response(response):
             if response_text.endswith("```"):
                 response_text = response_text[:-3]
             response_text = response_text.strip()
+        
+        # Try to parse as JSON, but preserve full text if it fails
         try:
-            return json.loads(response_text)
+            parsed = json.loads(response_text)
+            # If it's a simple string in JSON, return the string directly
+            if isinstance(parsed, str):
+                return {"text": parsed}
+            return parsed
         except json.JSONDecodeError:
-            return {"text": response_text}  # fallback
+            # Return the full text as a message object
+            return {"text": response_text}
     else:
-        return str(response)
+        return {"text": str(response)}
 
 
 # AI Chatbot routes
@@ -181,13 +191,26 @@ def chat():
         # Call the AI agent function with a system instruction prefix
         address_note = f"\nUser formatted address: {user_formatted_address}" if user_formatted_address else ""
         composed_message = f"{SYSTEM_INSTRUCTION}\n\nUser: {message}{address_note}"
+        
+        logger.info(f"Sending message to AI agent: {composed_message[:200]}...")
         ai_response = ai_agent_sync(composed_message, lang)
+        logger.info(f"AI agent response: {str(ai_response)[:200]}...")
+        
         # Normalize response into { intent, message, data }
         processed = safe_agent_response(ai_response)
+        logger.info(f"Processed response: {processed}")
+        
+        # Extract message text with better fallback handling
+        msg = ""
         if isinstance(processed, dict):
             msg = processed.get("text") or processed.get("message") or processed.get("response") or ""
         else:
             msg = str(processed)
+        
+        # Ensure we have a message
+        if not msg or msg.strip() == "":
+            msg = "I received your message but couldn't generate a proper response. Please try again."
+        
         envelope = {
             "success": True,
             "intent": "chat",
@@ -196,6 +219,7 @@ def chat():
             # Back-compat
             "response": ai_response
         }
+        logger.info(f"Returning envelope with message: {msg[:100]}...")
         return jsonify(envelope)
         
     except Exception as e:

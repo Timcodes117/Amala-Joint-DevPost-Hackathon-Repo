@@ -12,12 +12,18 @@ function AuthLayout({children}:{children: React.ReactNode}) {
   const { theme } = useTheme()
 
   React.useEffect(() => {
-    if('user' in localStorage) {
-      if(JSON.parse(localStorage.getItem('user') as string)?.is_verified) {
-        router.replace('/home')
-      } 
+    // Only check once on mount
+    if (typeof window !== 'undefined' && 'user' in localStorage) {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') as string)
+        if(user?.is_verified) {
+          router.replace('/home')
+        } 
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error)
+      }
     }
-  }, [router])
+  }, []) // Empty dependency array - only run once on mount
 
 
   return (

@@ -2,18 +2,28 @@
 import { ArrowUpDown, Plus, RefreshCw } from 'lucide-react'
   import { type SearchResult } from '@/components/search-popover'
   import SearchBar from '@/components/search-bar'
-  import React, { useMemo, useEffect } from 'react'
+  import React, { useMemo, useEffect, useState } from 'react'
   import ResultsContainer from '@/components/resultsContainer'
   import Link from 'next/link'
   import StoresMap from '@/components/maps/stores-map'
   import { useApp } from '@/contexts/AppContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSavedPlaces } from '@/hooks/useSavedPlaces'
+import { useRouter } from 'next/navigation'
+import { FilterOptions } from '@/components/FilterPopover'
 
   function Page() { 
     const { location, getCurrentLocation } = useApp()
-    const { user } = useAuth()
+    const { user, isAuthenticated } = useAuth()
     const { savePlace, unsavePlace, isPlaceSaved } = useSavedPlaces()
+    const router = useRouter()
+    const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({
+      nowOpen: false,
+      verified: false,
+      distanceKm: 2,
+      rating: null,
+      price: null
+    })
 
     // Convert places to SearchResult format for SearchBar compatibility
     const searchResults: SearchResult[] = useMemo(() => {
@@ -23,14 +33,16 @@ import { useSavedPlaces } from '@/hooks/useSavedPlaces'
         distanceKm: Math.round(Math.random() * 10 + 1), // Mock distance calculation
         etaMinutes: Math.round(Math.random() * 30 + 5), // Mock ETA calculation
         isOpen: place.opening_hours?.open_now ?? true,
+        verified: place.rating ? place.rating > 4.0 : false,
         rating: place.rating ?? 4.0,
+        priceLevel: place.price_level ?? 1,
         thumbnailUrl: undefined,
       }))
     }, [location.places])
 
     // No dummy fallback; rely solely on real results
 
-    // Auto-fetch location on component mount
+    // Auto-fetch location on component mount - only once
     useEffect(() => {
       console.log('useEffect running - location state:', {
         latitude: location.latitude,
@@ -44,14 +56,40 @@ import { useSavedPlaces } from '@/hooks/useSavedPlaces'
       } else {
         console.log('Skipping getCurrentLocation due to conditions')
       }
-    }, [getCurrentLocation, location.latitude, location.isLoading, location.error]) // Include all dependencies
+    }, []) // Empty dependency array - only run once on mount
+
+    // Filter handlers
+    const handleApplyFilters = (filters: FilterOptions) => {
+      setAppliedFilters(filters)
+    }
+
+    const handleClearFilters = () => {
+      setAppliedFilters({
+        nowOpen: false,
+        verified: false,
+        distanceKm: 2,
+        rating: null,
+        price: null
+      })
+    }
+
+    const handleSelectResult = (result: SearchResult) => {
+      // Navigate to place details
+      router.push(`/home/${result.id}`)
+    }
 
     // No manual refresh button; auto-fetch only
 
     return (
       <>
       {/* search and filters */}
-      <SearchBar data={searchResults} />
+      <SearchBar 
+        data={searchResults} 
+        onApplyFilters={handleApplyFilters}
+        onClearFilters={handleClearFilters}
+        onSelectResult={handleSelectResult}
+        resultCount={searchResults.length}
+      />
           <br />
         {/* results */}
        <div className='flex flex-row items-center justify-between'>
@@ -162,10 +200,31 @@ import { useSavedPlaces } from '@/hooks/useSavedPlaces'
       </div>
 
       {/* Floating action button to add a new store */}
-      <Link href='/home/new' aria-label='Add new store'
-        className='fixed md:absolute bottom-6 right-6 z-40 h-14 w-14 rounded-full pry-bg text-white flex items-center justify-center shadow-lg shadow-black/20 hover:opacity-90 active:opacity-80'>
-        <Plus size={24} />
-      </Link>
+      {isAuthenticated ? (
+        <Link href='/home/new' aria-label='Add new store'
+          className='fixed md:absolute bottom-6 right-6 z-40 h-14 w-14 rounded-full pry-bg text-white flex items-center justify-center shadow-lg shadow-black/20 hover:opacity-90 active:opacity-80'>
+          <Plus size={24} />
+        </Link>
+      ) : (
+        <div className='fixed md:absolute bottom-6 right-6 z-40'>
+          <div className='flex flex-col gap-2'>
+            <Link 
+              href='/auth/login'
+              className='h-12 w-12 rounded-full pry-bg text-white flex items-center justify-center shadow-lg shadow-black/20 hover:opacity-90 active:opacity-80'
+              aria-label='Login to add store'
+            >
+              <span className='text-xs font-medium'>Login</span>
+            </Link>
+            <Link 
+              href='/auth/signup'
+              className='h-12 w-12 rounded-full bg-white border-2 border-gray-300 text-gray-700 flex items-center justify-center shadow-lg shadow-black/20 hover:bg-gray-50 active:opacity-80'
+              aria-label='Sign up to add store'
+            >
+              <span className='text-xs font-medium'>Signup</span>
+            </Link>
+          </div>
+        </div>
+      )}
     </>
   )
 }

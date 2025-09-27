@@ -205,6 +205,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLocation(prev => ({ ...prev, error: null }))
   }
 
+  // Auto-fetch location on context initialization - only once
+  useEffect(() => {
+    const initializeLocation = async () => {
+      // Only fetch if we don't have location data and we're not already loading
+      if (!location.latitude && !location.isLoading && !location.error) {
+        console.log('AppContext: Auto-fetching location on initialization')
+        await getCurrentLocation()
+      }
+    }
+    
+    initializeLocation()
+  }, []) // Empty dependency array - only run once on mount
+
   const value = useMemo<AppContextValue>(() => ({
     locale,
     setLocale,

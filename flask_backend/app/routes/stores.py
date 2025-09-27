@@ -43,23 +43,55 @@ def add_store():
         
         db = mongo_client.get_db()
         
-        # Handle file upload if present
-        image_url = None
-        upload_result = None
-        if 'image' in request.files:
-            file = request.files['image']
+        # Handle multiple file uploads (max 4 images)
+        image_urls = []
+        upload_results = []
+        uploaded_files = []
+        
+        # Get all uploaded files
+        for key in request.files:
+            if key.startswith('image') and request.files[key].filename:
+                uploaded_files.append(request.files[key])
+        
+        # Validate number of images
+        if len(uploaded_files) > 4:
+            return jsonify({'success': False, 'error': 'Maximum 4 images allowed.'}), 400
+        
+        # Process each uploaded file
+        for i, file in enumerate(uploaded_files):
             if file and file.filename:
+                # Validate file type and size
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                file_extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                
+                if file_extension not in allowed_extensions:
+                    return jsonify({'success': False, 'error': f'Invalid file type for image {i+1}. Only PNG, JPG, JPEG, GIF, and WebP are allowed.'}), 400
+                
+                # Check file size (5MB limit per image)
+                file.seek(0, 2)  # Seek to end
+                file_size = file.tell()
+                file.seek(0)  # Reset to beginning
+                
+                if file_size > 5 * 1024 * 1024:  # 5MB
+                    return jsonify({'success': False, 'error': f'Image {i+1} too large. Maximum size is 5MB per image.'}), 400
+                
                 try:
                     # Upload to Cloudinary
                     cloudinary_service = get_cloudinary_service()
                     upload_result = cloudinary_service.upload_image(file, folder="amala_stores")
                     
                     if upload_result['success']:
-                        image_url = upload_result['url']
+                        image_urls.append(upload_result['url'])
+                        upload_results.append(upload_result)
                     else:
-                        return jsonify({'success': False, 'error': f"Image upload failed: {upload_result['error']}"}), 500
+                        return jsonify({'success': False, 'error': f"Image {i+1} upload failed: {upload_result['error']}"}), 500
                 except Exception as e:
-                    return jsonify({'success': False, 'error': f"Image upload error: {str(e)}"}), 500
+                    return jsonify({'success': False, 'error': f"Image {i+1} upload error: {str(e)}"}), 500
+        
+        # Handle single image URL from form data (for backward compatibility)
+        single_image_url = data.get('imageUrl')
+        if single_image_url and not image_urls:
+            image_urls = [single_image_url]
         
         # Get current user from JWT
         current_user = get_jwt_identity()
@@ -83,8 +115,10 @@ def add_store():
             'opensAt': data['opensAt'],
             'closesAt': data['closesAt'],
             'description': data['description'],
-            'imageUrl': image_url or data.get('imageUrl'),  # Use uploaded file or provided URL
-            'cloudinary_public_id': upload_result.get('public_id') if upload_result and upload_result.get('success') else None,
+            'imageUrls': image_urls,  # Array of image URLs (max 4)
+            'imageUrl': image_urls[0] if image_urls else None,  # Primary image for backward compatibility
+            'cloudinary_public_ids': [result.get('public_id') for result in upload_results if result.get('success')],
+            'cloudinary_public_id': upload_results[0].get('public_id') if upload_results and upload_results[0].get('success') else None,  # Primary public_id for backward compatibility
             'verifiedBy': 'amala-joint',  # Default verification source
             'is_verified': False,  # Initially unverified
             'verify_count': 0,  # No verifications yet
@@ -159,19 +193,25 @@ def get_store(store_id):
     try:
         db = mongo_client.get_db()
         
-        # Try to find by place_id first (for amala-joint stores)
+        # Try to find by place_id first (for amala-joint stores) - more efficient
         store = db.stores.find_one({'place_id': store_id})
         
         # If not found by place_id, try by _id (for backward compatibility)
         if not store:
-            store = db.stores.find_one({'_id': to_object_id(store_id)})
+            try:
+                store = db.stores.find_one({'_id': to_object_id(store_id)})
+            except Exception as e:
+                return jsonify({'success': False, 'error': 'Invalid store ID format'}), 400
         
         if not store:
             return jsonify({'success': False, 'error': 'Store not found'}), 404
         
+        # Serialize and remove sensitive data
+        serialized_store = serialize_document(store)
+        
         return jsonify({
             'success': True,
-            'data': serialize_document(store)
+            'data': serialized_store
         }), 200
         
     except Exception as e:
@@ -362,7 +402,7 @@ def upload_image_options():
 @stores_bp.post('/upload-image')
 @jwt_required()
 def upload_image():
-    """Dedicated endpoint for image uploads to Cloudinary"""
+    """Dedicated endpoint for single image uploads to Cloudinary"""
     try:
         if 'image' not in request.files:
             return jsonify({'success': False, 'error': 'No image file provided'}), 400
@@ -392,6 +432,81 @@ def upload_image():
             }), 200
         else:
             return jsonify({'success': False, 'error': upload_result['error']}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@stores_bp.route('/upload-images', methods=['OPTIONS'])
+def upload_multiple_images_options():
+    """Handle CORS preflight requests for upload multiple images endpoint"""
+    return '', 200
+
+@stores_bp.post('/upload-images')
+@jwt_required()
+def upload_multiple_images():
+    """Dedicated endpoint for multiple image uploads to Cloudinary (max 4)"""
+    try:
+        # Get all uploaded files
+        uploaded_files = []
+        for key in request.files:
+            if key.startswith('image') and request.files[key].filename:
+                uploaded_files.append(request.files[key])
+        
+        if not uploaded_files:
+            return jsonify({'success': False, 'error': 'No image files provided'}), 400
+        
+        # Validate number of images
+        if len(uploaded_files) > 4:
+            return jsonify({'success': False, 'error': 'Maximum 4 images allowed.'}), 400
+        
+        # Get folder from request (optional)
+        folder = request.form.get('folder', 'amala_uploads')
+        
+        # Process each uploaded file
+        upload_results = []
+        for i, file in enumerate(uploaded_files):
+            if file and file.filename:
+                # Validate file type and size
+                allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+                file_extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                
+                if file_extension not in allowed_extensions:
+                    return jsonify({'success': False, 'error': f'Invalid file type for image {i+1}. Only PNG, JPG, JPEG, GIF, and WebP are allowed.'}), 400
+                
+                # Check file size (5MB limit per image)
+                file.seek(0, 2)  # Seek to end
+                file_size = file.tell()
+                file.seek(0)  # Reset to beginning
+                
+                if file_size > 5 * 1024 * 1024:  # 5MB
+                    return jsonify({'success': False, 'error': f'Image {i+1} too large. Maximum size is 5MB per image.'}), 400
+                
+                try:
+                    # Upload to Cloudinary
+                    cloudinary_service = get_cloudinary_service()
+                    upload_result = cloudinary_service.upload_image(file, folder=folder)
+                    
+                    if upload_result['success']:
+                        upload_results.append({
+                            'url': upload_result['url'],
+                            'public_id': upload_result['public_id'],
+                            'format': upload_result['format'],
+                            'width': upload_result['width'],
+                            'height': upload_result['height'],
+                            'bytes': upload_result['bytes']
+                        })
+                    else:
+                        return jsonify({'success': False, 'error': f"Image {i+1} upload failed: {upload_result['error']}"}), 500
+                except Exception as e:
+                    return jsonify({'success': False, 'error': f"Image {i+1} upload error: {str(e)}"}), 500
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'images': upload_results,
+                'count': len(upload_results)
+            }
+        }), 200
             
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

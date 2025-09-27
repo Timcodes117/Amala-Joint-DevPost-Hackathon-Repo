@@ -71,3 +71,4 @@ FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"your-proje
 2. Set up environment variables
 3. Test the integration
 4. Deploy with proper environment variables
+

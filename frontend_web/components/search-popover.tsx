@@ -9,16 +9,19 @@ export type SearchResult = {
   distanceKm: number
   etaMinutes: number
   isOpen: boolean
+  verified: boolean
   thumbnailUrl?: string
   rating: number
+  priceLevel?: number
 }
 
 type SearchPopoverProps = {
   results: SearchResult[]
   visible: boolean
+  onSelectResult?: (result: SearchResult) => void
 }
 
-function SearchPopover({ results, visible }: SearchPopoverProps) {
+function SearchPopover({ results, visible, onSelectResult }: SearchPopoverProps) {
   if (!visible) return null
 
   return (
@@ -28,7 +31,11 @@ function SearchPopover({ results, visible }: SearchPopoverProps) {
       </div>
       <div className='flex flex-col'>
         {results.map((r) => (
-          <div key={r.id} className='px-4 py-3 flex items-center gap-3 border-b border-gray-800/30 last:border-b-0'>
+          <div 
+            key={r.id} 
+            className='px-4 py-3 flex items-center gap-3 border-b border-gray-800/30 last:border-b-0 hover:bg-gray-700/50 cursor-pointer transition-colors'
+            onClick={() => onSelectResult?.(r)}
+          >
             <div className='h-[48px] w-[48px] bg-gray-500/50 rounded-[12px] overflow-hidden flex-shrink-0'>
               {r.thumbnailUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

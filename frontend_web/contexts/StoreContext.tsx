@@ -229,7 +229,7 @@ export function StoreProvider({ children }: StoreProviderProps) {
       setUserStores([])
       setError(null)
     }
-  }, [isAuthenticated, accessToken, user?.email])
+  }, [isAuthenticated, accessToken]) // Removed user?.email to prevent infinite loops
 
   const value: StoreContextType = {
     // State

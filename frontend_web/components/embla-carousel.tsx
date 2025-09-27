@@ -12,6 +12,7 @@ export default function EmblaCarousel({ images, className = '', options }: Embla
   const [emblaRef, emblaApi] = useEmblaCarousel(options)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([])
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set())
 
   const onSelect = useCallback((api?: UseEmblaCarouselType[1]) => {
     const current = api ?? emblaApi
@@ -26,6 +27,15 @@ export default function EmblaCarousel({ images, className = '', options }: Embla
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi])
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi])
+
+  const handleImageLoad = useCallback((index: number) => {
+    setLoadedImages(prev => new Set([...prev, index]))
+  }, [])
+
+  const handleImageError = useCallback((index: number) => {
+    console.warn(`Failed to load image at index ${index}:`, images[index])
+    // Don't add to loadedImages to show fallback
+  }, [images])
 
   useEffect(() => {
     if (!emblaApi) return
@@ -47,12 +57,25 @@ export default function EmblaCarousel({ images, className = '', options }: Embla
         <div className='flex w-full h-full'>
           {images.map((src, i) => (
             <div key={i} className='min-w-0 flex-[0_0_100%] w-full h-full relative'>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {loadedImages.has(i) ? (
+                <img
+                  src={src}
+                  alt={`slide-${i}`}
+                  className='w-full h-full object-cover'
+                  draggable={false}
+                />
+              ) : (
+                <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                  <div className='text-gray-400 text-sm'>Loading...</div>
+                </div>
+              )}
+              {/* Hidden image for preloading */}
               <img
                 src={src}
-                alt={`slide-${i}`}
-                className='w-full h-full object-cover'
-                draggable={false}
+                alt={`preload-${i}`}
+                style={{ display: 'none' }}
+                onLoad={() => handleImageLoad(i)}
+                onError={() => handleImageError(i)}
               />
             </div>
           ))}

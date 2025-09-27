@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import VerifyResultsContainer from '@/components/verify-results-container'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import { useStores } from '@/contexts/StoreContext'
 // removed unused import: useAuth
 
@@ -20,7 +21,7 @@ function Page() {
   }, [fetchUnverifiedStores, fetchUserStores])
 
   return (
-    <>
+    <ProtectedRoute>
       {/* Header */}
       <div className='flex flex-col'> 
         <br />
@@ -114,7 +115,7 @@ function Page() {
           )
         )}
       </div>
-    </>
+    </ProtectedRoute>
   )
 }
 

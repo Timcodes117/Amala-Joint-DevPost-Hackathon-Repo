@@ -263,8 +263,8 @@ export default function StoresMap() {
                   clusterer={clusterer}
                   title={s.name}
                   icon={{
-                    url: "/images/amala_shop.png", 
-                    scaledSize: new google.maps.Size(32, 32),
+                    url: "/svgs/marker.svg", 
+                    scaledSize: new google.maps.Size(60, 60),
                     anchor: new google.maps.Point(16, 32), // Center bottom of image
                   }}
                   // shape={google.maps.}

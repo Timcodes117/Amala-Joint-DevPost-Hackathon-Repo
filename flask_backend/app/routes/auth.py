@@ -85,7 +85,7 @@ def signup():
     try:
         token = generate_email_token(user_doc['email'])
         frontend_base = current_app.config.get('FRONTEND_BASE_URL', 'https://amala-joint.vercel.app').rstrip('/')
-        verify_url = f"{frontend_base}/verify-email?token={token}"
+        verify_url = f"{frontend_base}/auth/verify-user/{token}"
         msg = Message(subject='Verify your Amala account')
         msg.recipients = [user_doc['email']]
         msg.body = f"Please verify your account by visiting: {verify_url}"

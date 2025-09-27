@@ -6,6 +6,7 @@ import rehypeSanitize from 'rehype-sanitize'
 import ChatHeader from '@/components/chat/ChatHeader'
 import ChatBubble from '@/components/chat/ChatBubble'
 import ChatInput from '@/components/chat/ChatInput'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import { useApp } from '@/contexts/AppContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { axiosPost } from '@/utils/http/api'
@@ -88,30 +89,46 @@ function Page() {
   }
 
   const parseBotResponse = (payload: unknown): { text: string; ctas?: CTAAction[]; intent?: string; raw?: unknown } => {
+    console.log('Raw AI response:', payload) // Debug logging
+    
     // Accepts string or object; tries to extract text and optional CTA actions
     if (typeof payload === 'string') {
       return { text: payload }
     }
+    
     if (payload && typeof payload === 'object') {
       const obj = payload as Record<string, unknown>
-      // Prefer normalized envelope {intent, message, data}
-      if (typeof obj.intent === 'string' && ('message' in obj || 'data' in obj)) {
-        const msg = typeof obj.message === 'string' ? obj.message : (typeof obj.data === 'string' ? obj.data : JSON.stringify(obj.data))
-        const dataObj = obj.data as { ctas?: CTAAction[] } | undefined
-        const ctas = Array.isArray(dataObj?.ctas) ? dataObj.ctas : (Array.isArray(obj.ctas) ? obj.ctas as CTAAction[] : undefined)
-        return { text: msg, ctas, intent: obj.intent, raw: obj }
+      
+      // Check for the new envelope format first
+      if (typeof obj.message === 'string') {
+        const ctas = Array.isArray(obj.ctas) ? obj.ctas as CTAAction[] : undefined
+        return { text: obj.message, ctas, intent: obj.intent as string, raw: obj }
       }
-      // Common shapes: { text, ctas } or { message } or { response }
-      const text = typeof obj.text === 'string'
-        ? obj.text
-        : typeof obj.message === 'string'
-        ? obj.message
-        : typeof obj.response === 'string'
-        ? obj.response
-        : JSON.stringify(obj)
-      const ctas = Array.isArray(obj.ctas) ? (obj.ctas as CTAAction[]) : undefined
-      return { text, ctas, raw: obj }
+      
+      // Check for data.message format
+      if (obj.data && typeof obj.data === 'object') {
+        const dataObj = obj.data as Record<string, unknown>
+        if (typeof dataObj.message === 'string') {
+          const ctas = Array.isArray(dataObj.ctas) ? dataObj.ctas as CTAAction[] : undefined
+          return { text: dataObj.message, ctas, intent: obj.intent as string, raw: obj }
+        }
+      }
+      
+      // Check for response field
+      if (typeof obj.response === 'string') {
+        return { text: obj.response, raw: obj }
+      }
+      
+      // Check for text field
+      if (typeof obj.text === 'string') {
+        const ctas = Array.isArray(obj.ctas) ? obj.ctas as CTAAction[] : undefined
+        return { text: obj.text, ctas, raw: obj }
+      }
+      
+      // If it's an object but no clear text field, stringify it
+      return { text: JSON.stringify(obj, null, 2), raw: obj }
     }
+    
     return { text: String(payload) }
   }
 
@@ -128,7 +145,11 @@ function Page() {
         return
       }
       const userAddress = location?.address || ''
+      console.log('Sending message to AI:', { message, lang: locale || 'en', address: userAddress })
+      
       const { data } = await axiosPost('/api/ai/chat', { message, lang: locale || 'en', address: userAddress }, { Authorization: `Bearer ${accessToken}` })
+      console.log('AI response received:', data)
+      
       if (!data?.success) {
         setError(data?.error || 'Failed to get response')
         setMessages((prev) => [
@@ -139,6 +160,13 @@ function Page() {
       }
 
       const parsed = parseBotResponse(data)
+      console.log('Parsed response:', parsed)
+      
+      // Ensure we have some text to display
+      if (!parsed.text || parsed.text.trim() === '') {
+        parsed.text = 'I received your message but couldn\'t generate a proper response. Please try again.'
+      }
+
       setMessages((prev) => [
         ...prev,
         { id: String(Date.now()), from: 'bot', text: parsed.text, ctas: parsed.ctas },
@@ -150,7 +178,8 @@ function Page() {
         const addPayload = rawData?.data || {}
         void handleAddStore(addPayload)
       }
-    } catch {
+    } catch (error) {
+      console.error('Chat error:', error)
       setError('Network error')
       setMessages((prev) => [
         ...prev,
@@ -249,66 +278,68 @@ function Page() {
   }
 
   return (
-    <div className='w-full h-full max-h-[80vh] flex flex-col overflow-hidden'>
-      <div className='hidden sm:block'>
-        <ChatHeader title='Amala Bot' avatarUrl='/bot.gif' />
-      </div>
-      <div className='flex-1 overflow-y-auto csb px-4 py-6 flex flex-col gap-3'>
-        {messages.map((m) => (
-          <ChatBubble key={m.id} from={m.from}>
-            {m.from === 'bot' ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                {m.text}
-              </ReactMarkdown>
-            ) : (
-              m.text.split('\n').map((line, i) => (
-                <span key={i} className='block'>
-                  {line}
-                </span>
-              ))
-            )}
-            {m.from === 'bot' && m.ctas && m.ctas.length > 0 ? (
-              <div className='mt-3 flex flex-row gap-2 flex-wrap'>
-                {m.ctas.map((cta, idx) => (
-                  <button
-                    key={`${m.id}-cta-${idx}`}
-                    onClick={() => {
-                      if (cta.type === 'link') {
-                        if (typeof window !== 'undefined') window.open(cta.url, '_blank', 'noopener,noreferrer')
-                      } else if (cta.type === 'navigate') {
-                        void handleNavigate(cta.query)
-                      } else if (cta.type === 'amala_finder') {
-                        void handleAmalaFinder(cta.query)
-                      }
-                    }}
-                    className='px-3 py-2 rounded-full bg-[#2A2A2A] text-white text-sm'
-                  >
-                    {cta.label || (cta.type === 'navigate' ? 'Get Directions' : cta.type === 'amala_finder' ? 'Find Nearby Amala' : 'Open Link')}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </ChatBubble>
-        ))}
-
-        <div className='mt-2'>
-          {/* <ChatQuickReplies
-            options={[
-              { id: 'skip', label: 'Nah, no need' },
-              { id: 'start', label: "Yes, let&apos;s do it!" },
-            ]}
-            onSelect={handleQuick}
-          /> */}
+    <ProtectedRoute>
+      <div className='w-full h-full max-h-[80vh] flex flex-col overflow-hidden'>
+        <div className='hidden sm:block'>
+          <ChatHeader title='Amala Bot' avatarUrl='/bot.gif' />
         </div>
-        <div ref={bottomRef} />
-      </div>
+        <div className='flex-1 overflow-y-auto csb px-4 py-6 flex flex-col gap-3'>
+          {messages.map((m) => (
+            <ChatBubble key={m.id} from={m.from}>
+              {m.from === 'bot' ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+                  {m.text}
+                </ReactMarkdown>
+              ) : (
+                m.text.split('\n').map((line, i) => (
+                  <span key={i} className='block'>
+                    {line}
+                  </span>
+                ))
+              )}
+              {m.from === 'bot' && m.ctas && m.ctas.length > 0 ? (
+                <div className='mt-3 flex flex-row gap-2 flex-wrap'>
+                  {m.ctas.map((cta, idx) => (
+                    <button
+                      key={`${m.id}-cta-${idx}`}
+                      onClick={() => {
+                        if (cta.type === 'link') {
+                          if (typeof window !== 'undefined') window.open(cta.url, '_blank', 'noopener,noreferrer')
+                        } else if (cta.type === 'navigate') {
+                          void handleNavigate(cta.query)
+                        } else if (cta.type === 'amala_finder') {
+                          void handleAmalaFinder(cta.query)
+                        }
+                      }}
+                      className='px-3 py-2 rounded-full bg-[#2A2A2A] text-white text-sm'
+                    >
+                      {cta.label || (cta.type === 'navigate' ? 'Get Directions' : cta.type === 'amala_finder' ? 'Find Nearby Amala' : 'Open Link')}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </ChatBubble>
+          ))}
 
-      <div className='px-4'>
-        {isSending ? <p className='text-xs text-gray-400 pb-1'>Sending...</p> : null}
-        {error ? <p className='text-xs text-red-400 pb-1'>{error}</p> : null}
+          <div className='mt-2'>
+            {/* <ChatQuickReplies
+              options={[
+                { id: 'skip', label: 'Nah, no need' },
+                { id: 'start', label: "Yes, let&apos;s do it!" },
+              ]}
+              onSelect={handleQuick}
+            /> */}
+          </div>
+          <div ref={bottomRef} />
+        </div>
+
+        <div className='px-4'>
+          {isSending ? <p className='text-xs text-gray-400 pb-1'>Sending...</p> : null}
+          {error ? <p className='text-xs text-red-400 pb-1'>{error}</p> : null}
+        </div>
+        <ChatInput onSend={handleSend} />
       </div>
-      <ChatInput onSend={handleSend} />
-    </div>
+    </ProtectedRoute>
   )
 }
 

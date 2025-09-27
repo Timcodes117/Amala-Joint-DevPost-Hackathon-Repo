@@ -51,13 +51,15 @@ function MainHeader() {
             <div className="w-full h-[60px] sm:h-[70px] md:h-[80px] flex flex-row items-center justify-between text-sm px-4 sm:px-6 md:px-8 lg:px-20">
                 {/* Logo */}
                 <div className='flex-shrink-0'>
-                    <Image 
-                        src={"/svgs/logo.svg"} 
-                        className={`h-[24px] w-[120px] sm:h-[28px] sm:w-[140px] md:h-[32px] md:w-[156px] bg-contain bg-center ${shouldInvert ? 'invert' : ''}`} 
-                        alt="Amala Logo"
-                        width={156}
-                        height={32}
-                    />
+                    <Link href="/">
+                        <Image 
+                            src={"/svgs/logo.svg"} 
+                            className={`h-[24px] w-[120px] sm:h-[28px] sm:w-[140px] md:h-[32px] md:w-[156px] bg-contain bg-center ${shouldInvert ? 'invert' : ''}`} 
+                            alt="Amala Logo"
+                            width={156}
+                            height={32}
+                        />
+                    </Link>
                 </div>
 
                 {/* Desktop Navigation */}

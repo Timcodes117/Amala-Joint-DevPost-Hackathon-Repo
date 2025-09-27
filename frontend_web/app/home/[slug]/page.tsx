@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import EmblaCarousel from '@/components/embla-carousel'
 import { Clock, Heart, Star, X, MapPin, Phone } from 'lucide-react'
@@ -58,7 +58,8 @@ interface AmalaStoreDetails {
   opensAt: string
   closesAt: string
   description: string
-  imageUrl?: string
+  imageUrl?: string  // Primary image for backward compatibility
+  imageUrls?: string[]  // Array of all images (max 4)
   verifiedBy: string
   is_verified: boolean
   verify_count: number
@@ -88,15 +89,17 @@ function Page() {
     const { savePlace, unsavePlace, isPlaceSaved } = useSavedPlaces()
 
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+    const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY
 
-    const fetchPlaceDetails = async () => {
+    // Memoize the fetchPlaceDetails function to prevent unnecessary re-renders
+    const fetchPlaceDetails = useCallback(async () => {
         try {
             setIsLoading(true)
             setError(null)
             
-            // Check if it&apos;s an amala-joint store by looking for &lsquo;amala_&rsquo; prefix
+            // Check if it's an amala-joint store by looking for 'amala_' prefix
             if (placeId.startsWith('amala_')) {
-                const token = localStorage.getItem('token')
+                const token = localStorage.getItem('access_token') // Use correct token key
                 if (token) {
                     const amalaResponse = await fetch(`${API_BASE_URL}/api/stores/${placeId}`, {
                         headers: {
@@ -140,7 +143,7 @@ function Page() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [placeId, API_BASE_URL])
 
     useEffect(() => {
         if (placeId) {
@@ -221,9 +224,33 @@ function Page() {
         return null
     }
 
-    const getPhotoUrl = (photoReference: string) => {
-        return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${photoReference}&key=AIzaSyALRlD6xsTbkQAnOaBTNyvymzrU908sMB8`
-    }
+    // Memoize photo URL generation to prevent unnecessary re-computations
+    const getPhotoUrl = useCallback((photoReference: string) => {
+        if (!GOOGLE_MAPS_KEY) {
+            console.warn('Google Maps API key not found')
+            return '/images/amala-billboard.png'
+        }
+        return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${photoReference}&key=${GOOGLE_MAPS_KEY}`
+    }, [GOOGLE_MAPS_KEY])
+
+    // Memoize image URLs to prevent unnecessary re-renders
+    const imageUrls = useMemo(() => {
+        if (isAmalaStore) {
+            // For Amala stores, use imageUrls array if available, otherwise fallback to imageUrl
+            if (amalaStoreDetails?.imageUrls && amalaStoreDetails.imageUrls.length > 0) {
+                return amalaStoreDetails.imageUrls.slice(0, 4) // Limit to 4 images
+            } else if (amalaStoreDetails?.imageUrl) {
+                return [amalaStoreDetails.imageUrl]
+            }
+            return ['/images/amala-billboard.png']
+        } else if (placeDetails?.photos?.length) {
+            // For Google Places, convert photo references to URLs
+            return placeDetails.photos
+                .filter((photo, index) => index < 4) // Limit to 4 images for performance
+                .map(photo => getPhotoUrl(photo.photo_reference))
+        }
+        return ['/images/amala-billboard.png']
+    }, [isAmalaStore, amalaStoreDetails?.imageUrls, amalaStoreDetails?.imageUrl, placeDetails?.photos, getPhotoUrl])
 
     const handleSaveToggle = () => {
         if (isAmalaStore && amalaStoreDetails) {
@@ -329,13 +356,7 @@ function Page() {
               </div>
             ) : (
               <EmblaCarousel 
-                images={
-                  isAmalaStore 
-                    ? (amalaStoreDetails?.imageUrl ? [amalaStoreDetails.imageUrl] : ['/images/amala-billboard.png'])
-                    : (placeDetails?.photos?.length 
-                        ? placeDetails.photos.filter((photo, index) => index < 4).map(photo => getPhotoUrl(photo.photo_reference))
-                        : ['/images/amala-billboard.png'])
-                }
+                images={imageUrls}
                 options={{ loop: true }}
               />
             )}
