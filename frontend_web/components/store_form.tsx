@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { MapPinned, Upload } from 'lucide-react'
 import { useStores } from '@/contexts/StoreContext'
 import AsyncSelect from 'react-select/async'
-import { axiosPostMultiPart } from '@/utils/http/api'
+import { axiosPostMultiPart, axiosPost } from '@/utils/http/api'
 import { toast } from 'react-toastify'
 
 type TimeOption = { label: string; value: string }
@@ -79,19 +79,19 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
     setValues((prev) => ({ ...prev, [key]: value }))
   }
 
-  // Address autocomplete functionality using Google Places API (client-side)
+  // Address autocomplete functionality using backend proxy
   const loadAddressOptions = async (inputValue: string) => {
     if (inputValue.length < 3) {
       return []
     }
 
     try {
-      // Use the new Google Places AutocompleteSuggestion API
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(inputValue)}&types=establishment|geocode&components=country:ng&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
-      )
+      // Use backend proxy instead of direct Google API call
+      const response = await axiosPost('/api/places/autocomplete', {
+        input: inputValue
+      })
       
-      const data = await response.json()
+      const data = response.data
       
       if (data.status === 'OK' && data.predictions) {
         const options = data.predictions.map((prediction: { description: string; place_id: string }) => ({
@@ -117,13 +117,13 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
     if (selectedOption) {
       update('location', selectedOption.value)
       
-      // Get coordinates using Google Places Details REST API
+      // Get coordinates using backend proxy for Google Places Details API
       if (selectedOption.place_id) {
         try {
-          const response = await fetch(
-            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${selectedOption.place_id}&fields=geometry,formatted_address&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
-          )
-          const data = await response.json()
+          const response = await axiosPost('/api/places/details', {
+            place_id: selectedOption.place_id
+          })
+          const data = response.data
           
           if (data.status === 'OK' && data.result.geometry) {
             const lat = data.result.geometry.location.lat
@@ -168,12 +168,13 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
 
       const { latitude, longitude } = position.coords
 
-      // Reverse geocode to get address using Google Geocoding API
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
-      )
+      // Reverse geocode to get address using backend proxy for Google Geocoding API
+      const response = await axiosPost('/api/places/geocode', {
+        lat: latitude,
+        lng: longitude
+      })
       
-      const data = await response.json()
+      const data = response.data
       
       if (data.status === 'OK' && data.results && data.results.length > 0) {
         const address = data.results[0].formatted_address

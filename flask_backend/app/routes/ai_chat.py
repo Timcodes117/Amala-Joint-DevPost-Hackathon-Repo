@@ -188,6 +188,10 @@ def chat():
         else:
             msg = str(processed)
         
+        # Additional validation to prevent system instruction leakage
+        if msg and "You are Amala Bot" in msg and len(msg) > 200:
+            msg = "I received your message but couldn't generate a proper response. Please try again."
+        
         # Ensure we have a message
         if not msg or msg.strip() == "":
             msg = "I received your message but couldn't generate a proper response. Please try again."

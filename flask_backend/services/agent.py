@@ -367,11 +367,27 @@ print("🤖 Agent team updated with an iterative LoopAgent workflow!")
 
 
 def clean_response(text: str) -> str:
+    """Clean and format AI response text"""
+    if not text or not isinstance(text, str):
+        return "I received your message but couldn't generate a proper response. Please try again."
+    
     # Collapse newlines and extra spaces
     text = re.sub(r"\s+", " ", text).strip()
-    # Ensure it's concise: only the first sentence if multiple
-    if "." in text:
-        text = text.split(".")[0] + "."
+    
+    # Remove any system instruction that might have leaked through
+    if "You are Amala Bot" in text:
+        # Extract only the part after the system instruction
+        parts = text.split("You are Amala Bot")
+        if len(parts) > 1:
+            text = parts[-1].strip()
+            # Remove any remaining system instruction fragments
+            if text.startswith(",") or text.startswith("."):
+                text = text[1:].strip()
+    
+    # Ensure we have meaningful content
+    if not text or len(text.strip()) < 3:
+        return "I received your message but couldn't generate a proper response. Please try again."
+    
     return text
 
 
@@ -384,31 +400,58 @@ def ai_agent(message: str, lang: str = "en") -> str:
         if not GENAI_AVAILABLE or not model:
             return "I'm sorry, AI functionality is currently unavailable. Please try again later."
         
+        # Extract just the user message for language detection
+        # The message might contain system instruction + user message
+        user_message = message
+        if "User: " in message:
+            # Extract only the user part after "User: "
+            user_message = message.split("User: ")[-1].strip()
+        
         # Use TranslateAgent for translation if needed
         if HELPERS_AVAILABLE and translate_text_mymemory and detect_language_mymemory:
-            # Detect language
-            detected_lang = detect_language_mymemory(message)
+            # Detect language from user message only
+            detected_lang = detect_language_mymemory(user_message)
+            
+            # Check if detection failed
+            if isinstance(detected_lang, str) and "Detection error" in detected_lang:
+                # Fallback to English if detection fails
+                detected_lang = "en-GB"
             
             # Translate input to English for AI processing
             text_for_ai = message
             if detected_lang != "en-GB":
-                text_for_ai = translate_text_mymemory(message, detected_lang, "en-GB")
+                # Only translate the user message part
+                if "User: " in message:
+                    system_part = message.split("User: ")[0] + "User: "
+                    user_part = message.split("User: ")[1]
+                    translated_user = translate_text_mymemory(user_part, detected_lang, "en-GB")
+                    text_for_ai = system_part + translated_user
+                else:
+                    text_for_ai = translate_text_mymemory(message, detected_lang, "en-GB")
             
-            # Generate AI response
-            response = model.generate_content(text_for_ai)
-            ai_response_text = response.text
-            
-            # Translate back to user's language
-            if detected_lang != "en-GB":
-                final_response = translate_text_mymemory(ai_response_text, "en-GB", detected_lang)
-            else:
-                final_response = ai_response_text
-        else:
-            # Fallback without translation
-            response = model.generate_content(message)
-            final_response = response.text
+        # Generate AI response
+        response = model.generate_content(text_for_ai)
+        ai_response_text = response.text
         
-        return clean_response(final_response)
+        # Validate the response
+        if not ai_response_text or not isinstance(ai_response_text, str):
+            return "I received your message but couldn't generate a proper response. Please try again."
+        
+        # Check if the response contains system instruction (indicates model issue)
+        if "You are Amala Bot" in ai_response_text and len(ai_response_text) > 200:
+            return "I received your message but couldn't generate a proper response. Please try again."
+        
+        # Translate back to user's language
+        if detected_lang != "en-GB":
+            final_response = translate_text_mymemory(ai_response_text, "en-GB", detected_lang)
+        else:
+            final_response = ai_response_text
+    else:
+        # Fallback without translation
+        response = model.generate_content(message)
+        final_response = response.text
+    
+    return clean_response(final_response)
         
     except Exception as e:
         return f"I encountered an error: {str(e)}"

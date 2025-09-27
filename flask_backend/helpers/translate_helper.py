@@ -39,6 +39,14 @@ def detect_language_mymemory(text: str) -> str:
     we infer detection by trying 'auto' as source.
     """
     try:
+        # Limit text length to avoid translation service issues
+        if len(text) > 500:
+            text = text[:500]
+        
+        # Skip detection for very short text
+        if len(text.strip()) < 3:
+            return "en-GB"
+        
         # Translate text with auto-detect → English
         translator = MyMemoryTranslator(source="auto", target="en-GB")
         translated = translator.translate(text)
@@ -49,6 +57,7 @@ def detect_language_mymemory(text: str) -> str:
             return "en-GB"
         return "yo-NG"  # fallback assumption for Yoruba
     except Exception as e:
+        # Return a proper error message instead of raising
         return f"Detection error: {str(e)}"
 
 

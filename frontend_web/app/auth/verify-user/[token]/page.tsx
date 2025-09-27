@@ -153,7 +153,7 @@ export default function VerifyUserPage() {
                   value={userEmail}
                   onChange={(e) => setUserEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300/20 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               
@@ -202,8 +202,8 @@ export default function VerifyUserPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50/20 px-4">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white/20 rounded-lg shadow-md">
         {renderContent()}
       </div>
     </div>

@@ -249,6 +249,7 @@ def verify_store(store_id):
         
         # Handle file upload if present
         image_url = None
+        upload_result = None  # Initialize upload_result
         if 'image' in request.files:
             file = request.files['image']
             if file and file.filename:

@@ -152,7 +152,7 @@ export default function VerifyStorePage() {
 
         {error && <div className='text-sm text-red-500'>{error}</div>}
 
-        <div className='flex items-center justify-end gap-2 pb-4'>
+        <div className='flex items-center justify-center gap-2 pb-4'>
           <button
             type='submit'
             disabled={submitting}
