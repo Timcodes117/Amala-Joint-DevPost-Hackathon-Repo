@@ -8,6 +8,7 @@ try:
     from .config import Config
     from .extensions import cors, jwt, mongo_client, init_mongo_indexes, mail
     from .routes import register_blueprints
+    from .swagger_config import create_swagger_api, create_response_models, create_health_endpoint
     print("✅ Core app modules imported successfully")
 except Exception as e:
     print(f"❌ Error importing core modules: {e}")
@@ -40,6 +41,17 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     mongo_client.init_app(app)
     with app.app_context():
         init_mongo_indexes()
+
+    # Initialize Swagger API
+    try:
+        api = create_swagger_api(app)
+        models = create_response_models(api)
+        api.models = models  # Store models for use in endpoints
+        create_health_endpoint(api)
+        print("✅ Swagger API initialized successfully")
+    except Exception as e:
+        print(f"⚠️ Could not initialize Swagger API: {e}")
+        api = None
 
     # Register blueprints centrally
     register_blueprints(app)

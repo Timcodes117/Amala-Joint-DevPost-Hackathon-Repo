@@ -201,14 +201,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/auth/google:
+    post:
+      summary: Google OAuth authentication
+      description: Authenticate user with Google OAuth
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_token
+              properties:
+                id_token:
+                  type: string
+                  example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+      responses:
+        '200':
+          description: Google authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Google authentication successful"
+                  user:
+                    $ref: '#/components/schemas/User'
+                  access_token:
+                    type: string
+                    example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/ai/chat:
     post:
       summary: AI chat with restaurant recommendations
       description: Chat with AI agent for restaurant recommendations and queries
       tags:
         - AI Features
-      security:
-        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -226,6 +268,9 @@ paths:
                   enum: [en, yo]
                   default: en
                   example: "en"
+                address:
+                  type: string
+                  example: "Lagos, Nigeria"
       responses:
         '200':
           description: AI response
@@ -234,14 +279,23 @@ paths:
               schema:
                 type: object
                 properties:
+                  success:
+                    type: boolean
+                    example: true
+                  intent:
+                    type: string
+                    example: "find_restaurants"
+                  message:
+                    type: string
+                    example: "I found several great Amala restaurants in Lagos..."
+                  data:
+                    type: object
+                    additionalProperties: true
                   response:
                     type: string
                     example: "I found several great Amala restaurants in Lagos..."
-                  ai_agent_available:
-                    type: boolean
-                    example: true
-        '401':
-          description: Unauthorized
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
@@ -411,12 +465,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/translate:
+  /api/places/autocomplete:
     post:
-      summary: Translate text (English ↔ Yoruba)
-      description: Translate text between English and Yoruba languages
+      summary: Google Places Autocomplete
+      description: Get place suggestions from Google Places API
       tags:
-        - AI Features
+        - Places API
       requestBody:
         required: true
         content:
@@ -424,47 +478,129 @@ paths:
             schema:
               type: object
               required:
-                - text
+                - input
               properties:
-                text:
+                input:
                   type: string
-                  example: "Hello, how are you?"
-                source_lang:
-                  type: string
-                  enum: [en-GB, yo-NG, auto]
-                  default: auto
-                  example: "auto"
-                target_lang:
-                  type: string
-                  enum: [en-GB, yo-NG]
-                  default: yo-NG
-                  example: "yo-NG"
+                  example: "Amala restaurant Lagos"
       responses:
         '200':
-          description: Translation result
+          description: Place suggestions
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                    example: true
-                  detected_lang:
-                    type: string
-                    example: "en-GB"
-                  source_lang:
-                    type: string
-                    example: "en-GB"
-                  target_lang:
-                    type: string
-                    example: "yo-NG"
-                  original_text:
-                    type: string
-                    example: "Hello, how are you?"
-                  translated_text:
-                    type: string
-                    example: "Báwo ni o ṣe wa?"
+                  predictions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        description:
+                          type: string
+                          example: "Amala Spot Restaurant, Lagos, Nigeria"
+                        place_id:
+                          type: string
+                          example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/places/details:
+    post:
+      summary: Google Places Details
+      description: Get detailed information about a place
+      tags:
+        - Places API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - place_id
+              properties:
+                place_id:
+                  type: string
+                  example: "ChIJN1t_tDeuEmsRUsoyG83frY4"
+      responses:
+        '200':
+          description: Place details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "Amala Spot Restaurant"
+                      formatted_address:
+                        type: string
+                        example: "123 Broad Street, Lagos Island, Lagos, Nigeria"
+                      geometry:
+                        type: object
+                        properties:
+                          location:
+                            type: object
+                            properties:
+                              lat:
+                                type: number
+                                example: 6.5244
+                              lng:
+                                type: number
+                                example: 3.3792
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/places/geocode:
+    post:
+      summary: Google Geocoding
+      description: Convert coordinates to address
+      tags:
+        - Places API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lat
+                - lng
+              properties:
+                lat:
+                  type: number
+                  example: 6.5244
+                lng:
+                  type: number
+                  example: 3.3792
+      responses:
+        '200':
+          description: Geocoding result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        formatted_address:
+                          type: string
+                          example: "123 Broad Street, Lagos Island, Lagos, Nigeria"
         '400':
           description: Bad request
           content:
@@ -672,6 +808,251 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/stores/add:
+    post:
+      summary: Add new restaurant
+      description: Add a new restaurant to the database
+      tags:
+        - Store Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - address
+                - latitude
+                - longitude
+              properties:
+                name:
+                  type: string
+                  example: "Amala Spot Restaurant"
+                address:
+                  type: string
+                  example: "123 Broad Street, Lagos Island, Lagos, Nigeria"
+                latitude:
+                  type: number
+                  example: 6.5244
+                longitude:
+                  type: number
+                  example: 3.3792
+                description:
+                  type: string
+                  example: "Best Amala in Lagos"
+                phone:
+                  type: string
+                  example: "+234-123-456-7890"
+                opening_hours:
+                  type: string
+                  example: "8:00 AM - 10:00 PM"
+                cuisine_type:
+                  type: string
+                  example: "Nigerian"
+                price_range:
+                  type: string
+                  enum: [low, moderate, high]
+                  example: "moderate"
+      responses:
+        '201':
+          description: Restaurant created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Store added successfully"
+                  store:
+                    $ref: '#/components/schemas/Restaurant'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/stores/unverified:
+    get:
+      summary: Get unverified restaurants
+      description: Get a list of restaurants that need verification
+      tags:
+        - Store Management
+      responses:
+        '200':
+          description: List of unverified restaurants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Restaurant'
+
+  /api/stores/verified:
+    get:
+      summary: Get verified restaurants
+      description: Get a list of verified restaurants
+      tags:
+        - Store Management
+      responses:
+        '200':
+          description: List of verified restaurants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Restaurant'
+
+  /api/stores/{store_id}/verify:
+    post:
+      summary: Verify restaurant
+      description: Verify a restaurant with photo evidence
+      tags:
+        - Store Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: store_id
+          in: path
+          required: true
+          description: Restaurant ID
+          schema:
+            type: string
+            example: "64f8a1b2c3d4e5f6a7b8c9d0"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Photo of the restaurant
+                comment:
+                  type: string
+                  example: "Great food and service!"
+      responses:
+        '200':
+          description: Restaurant verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Store verified successfully"
+                  verification:
+                    type: object
+                    properties:
+                      verified_by:
+                        type: string
+                        example: "user@example.com"
+                      verified_at:
+                        type: string
+                        format: date-time
+                        example: "2023-09-26T10:30:00Z"
+                      image_url:
+                        type: string
+                        example: "https://cloudinary.com/image.jpg"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/stores/upload-image:
+    post:
+      summary: Upload restaurant image
+      description: Upload an image for a restaurant
+      tags:
+        - Store Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file to upload
+                folder:
+                  type: string
+                  example: "restaurant_images"
+      responses:
+        '200':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  image_url:
+                    type: string
+                    example: "https://cloudinary.com/image.jpg"
+                  public_id:
+                    type: string
+                    example: "restaurant_images/abc123"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -835,6 +1216,8 @@ tags:
     description: User authentication and authorization
   - name: AI Features
     description: AI-powered restaurant discovery and recommendations
+  - name: Places API
+    description: Google Places API proxy endpoints
   - name: User Management
     description: User profile and preferences management
   - name: Store Management
