@@ -167,13 +167,13 @@ import MapErrorBoundary from '@/components/MapErrorBoundary'
             ) }
 
       <div className='w-full flex-1 min-h-0 flex flex-col md:overflow-y-auto csb gap-4 overscroll-contain mt-2'>
-          <div  className='relative md:hidden flex flex-row items-center justify-end w-full min-h-[200px] overflow-hidden rounded-xl bg-gray-100 mb-2'>
+          <div className='relative md:hidden flex flex-row items-center justify-end w-full min-h-[200px] rounded-xl bg-gray-50 mb-2'>
             <MapErrorBoundary>
               <StoresMap />
             </MapErrorBoundary>
             <Link
               href='?mobileMap=1'
-              className='md:hidden absolute top-3 right-3 px-3 py-2 rounded-full bg-black/80 text-white text-sm'
+              className='md:hidden absolute top-3 right-3 px-3 py-2 rounded-full bg-black/80 text-white text-sm hover:bg-black/90 transition-colors'
               aria-label='Open map full-screen'
             >
               Open Map

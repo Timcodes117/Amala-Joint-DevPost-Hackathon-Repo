@@ -28,7 +28,7 @@ async function getFirebaseApp(): Promise<FirebaseApp> {
       }
 
       if (!config.apiKey || !config.authDomain || !config.projectId || !config.appId) {
-        throw new Error('Missing NEXT_PUBLIC_FIREBASE_* environment variables. Please check your .env.local file.')
+        throw new Error('Firebase configuration is incomplete. Please check your Firebase setup.')
       }
 
       const app = getApps().length ? getApps()[0] : initializeApp(config)
@@ -67,8 +67,10 @@ export async function getIdTokenWithPopup(): Promise<string> {
         throw new Error('Popup blocked by browser. Please allow popups and try again.')
       } else if (error.message.includes('network-request-failed')) {
         throw new Error('Network error. Please check your internet connection.')
-      } else if (error.message.includes('Missing NEXT_PUBLIC_FIREBASE_*')) {
+      } else if (error.message.includes('Firebase configuration is incomplete')) {
         throw new Error('Firebase configuration missing. Please contact support.')
+      } else if (error.message.includes('auth/configuration-not-found')) {
+        throw new Error('Firebase authentication not properly configured. Please check your Firebase project settings.')
       }
     }
     
