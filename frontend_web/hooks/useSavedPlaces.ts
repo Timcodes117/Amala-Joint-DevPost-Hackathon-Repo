@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 
 export interface SavedPlace {
   place_id: string
@@ -71,14 +72,23 @@ export const useSavedPlaces = () => {
       // Check if already saved
       const exists = prev.some(p => p.place_id === place.place_id)
       if (exists) {
+        toast.info('This place is already saved!')
         return prev // Don't add duplicates
       }
+      
+      toast.success(`"${place.name}" saved to your favorites!`)
       return [...prev, savedPlace]
     })
   }
 
   const unsavePlace = (placeId: string) => {
-    setSavedPlaces(prev => prev.filter(p => p.place_id !== placeId))
+    setSavedPlaces(prev => {
+      const place = prev.find(p => p.place_id === placeId)
+      if (place) {
+        toast.success(`"${place.name}" removed from favorites`)
+      }
+      return prev.filter(p => p.place_id !== placeId)
+    })
   }
 
   const isPlaceSaved = (placeId: string) => {

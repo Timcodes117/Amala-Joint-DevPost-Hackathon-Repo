@@ -10,6 +10,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { useApp } from '@/contexts/AppContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { axiosPost } from '@/utils/http/api'
+import { toast } from 'react-toastify'
 
 type CTAAction =
   | { type: 'navigate'; label?: string; query: string }
@@ -221,11 +222,17 @@ function Page() {
       const placeId = storeResponse?.place_id || responseData?.place_id
       const link = placeId ? `/home/${placeId}` : '/home'
       const md = `✅ Store added! [View store](${link})` 
+      
+      // Show success toast
+      toast.success('Store added successfully! It will be reviewed for verification.')
+      
       setMessages((prev) => [
         ...prev,
         { id: String(Date.now()), from: 'bot', text: md },
       ])
-    } catch {
+    } catch (error) {
+      console.error('Store addition error:', error)
+      toast.error('Failed to add store. Please try again.')
       setMessages((prev) => [
         ...prev,
         { id: String(Date.now()), from: 'bot', text: 'An error occurred while adding the store.' },

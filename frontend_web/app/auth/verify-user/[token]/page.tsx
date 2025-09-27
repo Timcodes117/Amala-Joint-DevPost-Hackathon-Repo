@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import ClipLoader from 'react-spinners/ClipLoader'
 import { CheckCircle, XCircle, Mail, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'react-toastify'
 
 type VerificationState = 'loading' | 'success' | 'error' | 'resending'
 
@@ -89,14 +90,17 @@ export default function VerifyUserPage() {
       
       if (data.success) {
         setResendState('success')
+        toast.success('Verification email sent successfully! Please check your inbox.')
         setTimeout(() => setResendState('idle'), 3000)
       } else {
         setResendState('error')
+        toast.error(data.error || 'Failed to send verification email')
         setTimeout(() => setResendState('idle'), 3000)
       }
     } catch (error) {
       console.error('Resend error:', error)
       setResendState('error')
+      toast.error('Network error. Please try again.')
       setTimeout(() => setResendState('idle'), 3000)
     }
   }

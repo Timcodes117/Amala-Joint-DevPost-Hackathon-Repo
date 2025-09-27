@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Upload } from 'lucide-react'
 import { axiosPostMultiPart } from '@/utils/http/api'
+import { toast } from 'react-toastify'
 
 type VerifyFormValues = {
   reason: string
@@ -63,6 +64,9 @@ export default function VerifyStorePage() {
 
       console.log('Verification submitted successfully:', result)
       setError(null)
+      
+      // Show success toast
+      toast.success('Verification submitted successfully! Thank you for helping improve our database.')
       
       // Clear form after successful submission
       setValues({

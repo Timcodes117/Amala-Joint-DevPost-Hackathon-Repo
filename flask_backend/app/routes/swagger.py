@@ -81,3 +81,4 @@ def swagger_ui():
         return html_content, 200, {'Content-Type': 'text/html'}
     except Exception as e:
         return jsonify({'error': f'Error serving Swagger UI: {str(e)}'}), 500
+
