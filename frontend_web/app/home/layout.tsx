@@ -37,21 +37,50 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
   const isMobileMap = searchParams?.get('mobileMap') === '1';
 
   // Use the store context
-  const { unverifiedStores, loadingStores, ignoreStore } = useStores()
+  const { unverifiedStores, verifiedStores, loadingStores, ignoreStore } = useStores()
 
-  const DUMMY: any[] = React.useMemo(
-    () =>
-      new Array(8).fill(0).map((_, i) => ({
-        id: `spot-${i}`,
-        name: `The Amala Palace ${i + 1}`,
-        distanceKm: 12,
-        etaMinutes: 20,
-        isOpen: true,
-        rating: 4.8,
-        thumbnailUrl: undefined,
-      })),
-    []
-  )
+  // Transform store data to match SearchResult interface
+  const searchData: SearchResult[] = React.useMemo(() => {
+    const allStores = [...verifiedStores, ...unverifiedStores]
+    
+    return allStores.map((store) => {
+      // Calculate if store is currently open
+      const now = new Date()
+      const currentTime = now.getHours() * 60 + now.getMinutes()
+      
+      let isOpen = true
+      if (store.opensAt && store.closesAt) {
+        try {
+          const [openHour, openMin] = store.opensAt.split(':').map(Number)
+          const [closeHour, closeMin] = store.closesAt.split(':').map(Number)
+          const openTime = openHour * 60 + openMin
+          const closeTime = closeHour * 60 + closeMin
+          
+          // Handle stores that close after midnight
+          if (closeTime < openTime) {
+            isOpen = currentTime >= openTime || currentTime <= closeTime
+          } else {
+            isOpen = currentTime >= openTime && currentTime <= closeTime
+          }
+        } catch (error) {
+          console.warn('Error parsing store hours:', error)
+          isOpen = true // Default to open if parsing fails
+        }
+      }
+      
+      return {
+        id: store._id,
+        name: store.name,
+        distanceKm: Math.round(2 + Math.random() * 8), // TODO: Calculate real distance based on user location
+        etaMinutes: Math.round(5 + Math.random() * 20), // TODO: Calculate real ETA
+        isOpen,
+        verified: store.is_verified,
+        thumbnailUrl: store.imageUrl,
+        rating: 4.5, // TODO: Get real rating from store data
+        priceLevel: undefined, // TODO: Add price level to store data
+      }
+    })
+  }, [verifiedStores, unverifiedStores])
   
   // Initialize/sync right panel view from query param (?view=map|verify)
   React.useEffect(() => {
@@ -148,7 +177,15 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
           </div>
 
         <div className='flex flex-row gap-2 max-w-[500px] w-full' style={{display: isFullScreen ? 'flex' : 'none'}}>
-          <SearchBar data={DUMMY} placeholder='Search for a store' className='w-full' />
+          <SearchBar 
+            data={searchData} 
+            placeholder='Search for a store' 
+            className='w-full'
+            onSelectResult={(result) => {
+              // Navigate to the store detail page using the store ID as slug
+              router.push(`/home/${result.id}`)
+            }}
+          />
           </div>
 
         <div className='flex items-center gap-2'>

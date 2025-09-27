@@ -19,18 +19,32 @@ logger = logging.getLogger(__name__)
 
 # System instruction to guide AI behavior for the Amala Joint app
 SYSTEM_INSTRUCTION = (
-    "You are Amala Bot, a helpful assistant inside the Amala Joint app. "
-    "Primary goals: (1) Help users find Amala spots near them, (2) Provide detailed insights (price, rating, hours, location), (3) Offer clear, actionable CTAs. "
-    "Assume the user is in Nigeria; keep results locally relevant. Be helpful and informative, provide complete responses. Respond in the user's current language if specified by the request; otherwise use English.\n\n"
-    "IMPORTANT: Always provide complete, helpful responses. Do not truncate or cut off your responses mid-sentence. Give full explanations and details.\n\n"
-    "Presentation: Use clean Markdown formatting. Use headings, bullet lists, bold names, inline links (e.g., Google Maps URLs), and small image previews when appropriate. Do NOT wrap in code fences.\n\n"
-    "CTA suggestions to include when appropriate (JSON-like examples):\n"
-    "- Navigate: { 'type': 'navigate', 'label': 'Get Directions', 'query': '<place or address>' }\n"
-    "- Amala Finder: { 'type': 'amala_finder', 'label': 'Find Nearby Amala', 'query': '<what to find>' }\n"
-    "- Link: { 'type': 'link', 'label': 'Open Link', 'url': 'https://...' }\n\n"
-    "If you provide a list of Amala spots, format as a Markdown list like: '- **Name** — detailed description; rating ⭐, price_range; [Directions](maps_url)'.\n\n"
-    "When the user wants to add a new spot: First ask for required fields (name, phone, location, opensAt, closesAt, description, optional image URL). After collecting them, respond with intent 'add_store' and a data object containing these fields so the client can submit to the backend.\n\n"
-    "Always ensure your responses are complete and helpful. Do not leave responses unfinished or truncated."
+    "You are Amala Bot, a friendly and helpful assistant for the Amala Joint app. "
+    "Your main purpose is to help users find the best Amala spots and provide helpful information about Nigerian cuisine and restaurants.\n\n"
+    
+    "Key capabilities:\n"
+    "• Help users find Amala restaurants near their location\n"
+    "• Provide information about Amala dishes, ingredients, and preparation\n"
+    "• Suggest restaurants based on preferences (budget, location, ratings)\n"
+    "• Answer questions about Nigerian food culture\n"
+    "• Help users discover new Amala spots they might enjoy\n\n"
+    
+    "Communication style:\n"
+    "• Be conversational, friendly, and enthusiastic about Nigerian food\n"
+    "• Use simple, clear language that's easy to understand\n"
+    "• Ask follow-up questions to better understand user needs\n"
+    "• Provide helpful suggestions and recommendations\n"
+    "• Always be encouraging and positive\n\n"
+    
+    "When users ask about finding Amala spots:\n"
+    "• Ask about their location or preferred area\n"
+    "• Inquire about their budget preferences\n"
+    "• Ask about specific Amala dishes they're interested in\n"
+    "• Suggest popular spots with good ratings\n"
+    "• Provide practical information like opening hours and contact details\n\n"
+    
+    "Always respond in a natural, conversational way. Don't use formal JSON structures - just have a friendly chat! "
+    "If you need to suggest specific actions (like finding nearby spots), mention it naturally in your response."
 )
 
 # Helper to access Google API key from the running Flask app config
@@ -81,18 +95,12 @@ except ImportError as e:
 
 
 
-ai_chatbot_bp = Blueprint('ai_chatbot', __name__, url_prefix='/api/ai')
-navigate_bp = Blueprint('navigate', __name__, url_prefix='/api/navigate')
-amala_finder_bp = Blueprint('amala_finder', __name__, url_prefix='/api/ai')  # Match your URL structure
-planner_bp = Blueprint('planner', __name__, url_prefix='/api/planner')
-amala_ai_bp = Blueprint('amala_ai', __name__, url_prefix='/api/veirfystore')
-translate_bp = Blueprint('translate', __name__, url_prefix='/api/translate')
-
 ai_chatbot_bp = Blueprint('ai_chatbot', __name__)
 navigate_bp = Blueprint('navigate', __name__)
 amala_finder_bp = Blueprint('amala_finder', __name__)
 planner_bp = Blueprint('planner', __name__)
 amala_ai_bp = Blueprint('amala_ai', __name__)
+translate_bp = Blueprint('translate', __name__)
 
 
 
@@ -170,7 +178,6 @@ def chat_options():
     return '', 200
 
 @ai_chatbot_bp.post('/chat')
-@jwt_required()
 def chat():
     try:
         data = request.get_json()
@@ -202,8 +209,11 @@ def chat():
         
         # Extract message text with better fallback handling
         msg = ""
+        intent = "chat"
+        
         if isinstance(processed, dict):
             msg = processed.get("text") or processed.get("message") or processed.get("response") or ""
+            intent = processed.get("intent", "chat")
         else:
             msg = str(processed)
         
@@ -213,7 +223,7 @@ def chat():
         
         envelope = {
             "success": True,
-            "intent": "chat",
+            "intent": intent,
             "message": msg,
             "data": processed,
             # Back-compat

@@ -88,6 +88,15 @@ function SearchBar({
     onApplyFilters?.(newFilters)
   }
 
+  const handleSelectResult = (result: SearchResult) => {
+    // Close the popover when a result is selected
+    setShowPopover(false)
+    // Clear the search query
+    setQuery('')
+    // Call the parent's onSelectResult handler
+    onSelectResult?.(result)
+  }
+
   const handleClearFilters = () => {
     const defaultFilters: FilterOptions = {
       nowOpen: false,
@@ -124,7 +133,7 @@ function SearchBar({
       <SearchPopover 
         results={filtered} 
         visible={showPopover && filtered.length > 0} 
-        onSelectResult={onSelectResult}
+        onSelectResult={handleSelectResult}
       />
       <FilterPopover
         isOpen={showFilterPopover}

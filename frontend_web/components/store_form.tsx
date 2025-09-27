@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 // import Link from 'next/link'
 import { MapPinned, Upload } from 'lucide-react'
 import { useStores } from '@/contexts/StoreContext'
-import { useApp } from '@/contexts/AppContext'
 import AsyncSelect from 'react-select/async'
 import { axiosPostMultiPart } from '@/utils/http/api'
 import { toast } from 'react-toastify'
@@ -59,7 +58,6 @@ function buildTimeOptions(): TimeOption[] {
 export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) {
   const timeOptions = useMemo(buildTimeOptions, [])
   const { addStore, fetchUserStores } = useStores()
-  const { location, getCurrentLocation } = useApp()
   const [values, setValues] = useState<StoreFormValues>({
     name: '',
     phone: '',
@@ -154,28 +152,52 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
 
   const handleUseCurrentLocation = async () => {
     try {
-      // Use the existing getCurrentLocation from AppContext
-      await getCurrentLocation()
+      // Check if geolocation is supported
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser')
+      }
+
+      // Get current position
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        })
+      })
+
+      const { latitude, longitude } = position.coords
+
+      // Reverse geocode to get address using Google Geocoding API
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`
+      )
       
-      // Update form values with the location from context
-      if (location.latitude && location.longitude && location.address) {
-        update('latitude', location.latitude)
-        update('longitude', location.longitude)
-        update('location', location.address)
+      const data = await response.json()
+      
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const address = data.results[0].formatted_address
+        
+        // Update form values
+        update('latitude', latitude)
+        update('longitude', longitude)
+        update('location', address)
         
         // Update react-select value
         const currentLocationOption: SelectOption = {
-          value: location.address,
-          label: location.address,
-          lat: location.latitude,
-          lng: location.longitude,
+          value: address,
+          label: address,
+          lat: latitude,
+          lng: longitude,
           place_id: 'current_location'
         }
         setSelectedAddress(currentLocationOption)
+      } else {
+        throw new Error('Unable to get address for current location')
       }
     } catch (error) {
       console.error('Error getting current location:', error)
-      setError('Unable to get your current location')
+      setError('Unable to get your current location. Please enter address manually.')
     }
   }
 
@@ -334,27 +356,6 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
     } catch {}
   }, [])
 
-  // Watch for location changes from AppContext
-  useEffect(() => {
-    if (location.latitude && location.longitude && location.address) {
-      // Only update if the form location is empty or if we're using current location
-      if (!values.location || selectedAddress?.place_id === 'current_location') {
-        update('latitude', location.latitude)
-        update('longitude', location.longitude)
-        update('location', location.address)
-        
-        // Update react-select value
-        const currentLocationOption: SelectOption = {
-          value: location.address,
-          label: location.address,
-          lat: location.latitude,
-          lng: location.longitude,
-          place_id: 'current_location'
-        }
-        setSelectedAddress(currentLocationOption)
-      }
-    }
-  }, [location.latitude, location.longitude, location.address, values.location, selectedAddress?.place_id])
 
   // Save draft (excluding file)
   function handleSaveDraft() {

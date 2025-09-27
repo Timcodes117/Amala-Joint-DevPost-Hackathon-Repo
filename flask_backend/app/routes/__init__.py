@@ -11,6 +11,7 @@ from .ai_chat import (
     planner_bp,
     navigate_bp,
     amala_ai_bp,
+    translate_bp,
 )
 
 
@@ -31,4 +32,5 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(planner_bp, url_prefix="/api/ai")
     app.register_blueprint(navigate_bp, url_prefix="/api/ai")
     app.register_blueprint(amala_ai_bp, url_prefix="/api/ai")
+    app.register_blueprint(translate_bp, url_prefix="/api")
 

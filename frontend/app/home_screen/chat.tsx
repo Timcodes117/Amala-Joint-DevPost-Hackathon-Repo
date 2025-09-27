@@ -17,9 +17,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, MoreVertical, Send } from 'lucide-react-native';
 import { color_scheme, font_name } from '../../utils/constants/app_constants';
-import { GEMINI_CONFIG } from '../../config/gemini';
 import BackButton from '../../components/buttons/back_button';
 import { router } from 'expo-router';
+import { axiosPost } from '../../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -50,12 +50,13 @@ const ChatScreen = () => {
     },
     {
       id: '2',
-      text: "I'm here to help you add a new Amala spot so others can discover amazing places to eat. Ready to get started?",
+      text: "I'm your friendly Amala Bot! I'm here to help you discover the best Amala spots around you and share everything about Nigerian cuisine. What would you like to know?",
       isBot: true,
       timestamp: new Date(),
       buttons: [
-        { id: 'btn1', text: 'Nah, no need', action: 'decline' },
-        { id: 'btn2', text: "Yes, let's do it!", action: 'accept' },
+        { id: 'btn1', text: 'Find Amala spots near me', action: 'find_spots' },
+        { id: 'btn2', text: 'Tell me about Amala dishes', action: 'learn_about_amala' },
+        { id: 'btn3', text: 'Help me choose a restaurant', action: 'choose_restaurant' },
       ],
     },
   ]);
@@ -64,64 +65,32 @@ const ChatScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Function to call Gemini API
-  const callGeminiAPI = async (userMessage: string): Promise<BotResponse> => {
+  // Function to call backend API
+  const callBackendAPI = async (userMessage: string): Promise<BotResponse> => {
     try {
-      const systemInstruction = `You are a helpful assistant for Amala Joint app. Always respond in this exact JSON format: {"intent": "intent_keyword", "message": "your_response_message"}. 
+      console.log('Sending message to backend:', userMessage);
       
-      Conversation history: ${conversationHistory}
-      
-      User message: ${userMessage}`;
-
-      const response = await fetch(GEMINI_CONFIG.API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': GEMINI_CONFIG.API_KEY,
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: systemInstruction
-            }]
-          }]
-        }),
+      const response = await axiosPost('/api/ai/chat', {
+        message: userMessage,
+        lang: 'en',
+        address: '' // You can add user location here if available
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
+      console.log('Backend response:', response.data);
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || 'Failed to get response');
       }
 
-      const data = await response.json();
-      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      console.log('Raw response:', responseText);
-
-      // Clean the response text by removing markdown code blocks
-      const cleanedText = responseText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-
-      console.log('Cleaned text:', cleanedText);
-
-      // Parse the JSON response
-      try {
-        const parsedResponse = JSON.parse(cleanedText);
-        console.log('Parsed response:', parsedResponse);
-        return {
-          intent: parsedResponse.intent || 'general',
-          message: parsedResponse.message || 'I apologize, but I had trouble processing your request.'
-        };
-      } catch (parseError) {
-        console.log('Parse error:', parseError);
-        // If JSON parsing fails, return the raw text
-        return {
-          intent: 'general',
-          message: responseText || 'I apologize, but I had trouble processing your request.'
-        };
-      }
+      const data = response.data;
+      const message = data.message || data.response || 'I received your message but couldn\'t generate a proper response. Please try again.';
+      
+      return {
+        intent: data.intent || 'chat',
+        message: message
+      };
     } catch (error) {
-      console.error('Gemini API Error:', error);
+      console.error('Backend API Error:', error);
       return {
         intent: 'error',
         message: 'Sorry, I encountered an error. Please try again.'
@@ -150,8 +119,8 @@ const ChatScreen = () => {
       setIsLoading(true);
       
       try {
-        // Call Gemini API
-        const botResponse = await callGeminiAPI(userMessage);
+        // Call Backend API
+        const botResponse = await callBackendAPI(userMessage);
         
         // Update conversation history
         updateConversationHistory(userMessage, botResponse.message);
@@ -189,8 +158,8 @@ const ChatScreen = () => {
     setIsLoading(true);
     
     try {
-      // Call Gemini API
-      const botResponse = await callGeminiAPI(buttonText);
+      // Call Backend API
+      const botResponse = await callBackendAPI(buttonText);
       
       // Update conversation history
       updateConversationHistory(buttonText, botResponse.message);
@@ -258,18 +227,10 @@ const ChatScreen = () => {
           {message.buttons.map((button) => (
             <TouchableOpacity
               key={button.id}
-              style={[
-                styles.actionButton,
-                button.text.includes('Budget friendly') && styles.selectedButton,
-              ]}
+              style={styles.actionButton}
               onPress={() => handleButtonPress(button.action, button.text)}
             >
-              <Text
-                style={[
-                  styles.buttonText,
-                  button.text.includes('Budget friendly') && styles.selectedButtonText,
-                ]}
-              >
+              <Text style={styles.buttonText}>
                 {button.text}
               </Text>
             </TouchableOpacity>
@@ -450,16 +411,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: color_scheme.grey_bg,
   },
-  selectedButton: {
-    backgroundColor: color_scheme.text_color,
-  },
   buttonText: {
     fontSize: 14,
     color: color_scheme.text_color,
     fontFamily: font_name,
-  },
-  selectedButtonText: {
-    color: color_scheme.light,
   },
   inputContainer: {
     flexDirection: 'row',

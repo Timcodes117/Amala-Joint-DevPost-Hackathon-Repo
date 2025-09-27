@@ -285,8 +285,8 @@ export default function StoresMap() {
                   title={s.name}
                   icon={{
                     url: "/svgs/marker.svg", 
-                    scaledSize: new google.maps.Size(60, 60),
-                    anchor: new google.maps.Point(16, 32), // Center bottom of image
+                    scaledSize: new google.maps.Size(60, 100),
+                    anchor: new google.maps.Point(60, 100), // Center bottom of image
                   }}
                   // shape={google.maps.}
                   onClick={() => {

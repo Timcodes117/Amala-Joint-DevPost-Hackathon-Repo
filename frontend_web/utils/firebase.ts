@@ -7,6 +7,11 @@ import type { FirebaseApp } from 'firebase/app'
 
 let appPromise: Promise<FirebaseApp> | null = null
 
+const FIREBASE_API_KEY="AIzaSyC2BXrd4F1r1NOTULaDlXgsKZipn5svUgg"
+const FIREBASE_AUTH_DOMAIN="amala-joint.firebaseapp.com"
+const FIREBASE_PROJECT_ID="amala-joint"
+const FIREBASE_APP_ID="1:882538035251:web:1373fd47d0e7d9fe030b46"
+
 async function getFirebaseApp(): Promise<FirebaseApp> {
   if (!appPromise) {
     appPromise = (async () => {
@@ -16,10 +21,10 @@ async function getFirebaseApp(): Promise<FirebaseApp> {
       ])
 
       const config = {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        apiKey: FIREBASE_API_KEY,
+        authDomain: FIREBASE_AUTH_DOMAIN,
+        projectId: FIREBASE_PROJECT_ID,
+        appId: FIREBASE_APP_ID,
       }
 
       if (!config.apiKey || !config.authDomain || !config.projectId || !config.appId) {
