@@ -36,11 +36,11 @@ export default function ProtectedRoute({
   // If not authenticated, show login/signup buttons
   if (!isAuthenticated || !user || !accessToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center ">
         <div className="w-full max-w-sm mx-auto p-6">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-            <p className="text-gray-600">Please log in or sign up to access this feature</p>
+            <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
+            <p className="text-gray-600 text_muted">Please log in or sign up to access this feature</p>
           </div>
           
           <div className="space-y-4">
@@ -53,7 +53,7 @@ export default function ProtectedRoute({
             
             <Link 
               href="/auth/signup"
-              className="w-full flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+              className="w-full flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white/20 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
             >
               Sign Up
             </Link>

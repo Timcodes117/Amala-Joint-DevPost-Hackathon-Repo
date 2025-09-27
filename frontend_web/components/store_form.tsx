@@ -7,6 +7,7 @@ import { useStores } from '@/contexts/StoreContext'
 import { useApp } from '@/contexts/AppContext'
 import AsyncSelect from 'react-select/async'
 import { axiosPostMultiPart } from '@/utils/http/api'
+import { toast } from 'react-toastify'
 
 type TimeOption = { label: string; value: string }
 
@@ -209,14 +210,36 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
         formData.append('closesAt', values.closesAt)
         formData.append('description', values.description)
         if (values.file) {
-          formData.append('image', values.file)
+          formData.append('image1', values.file)
         }
 
         // Get JWT token from localStorage
         const token = localStorage.getItem('access_token')
         
+        if (!token) {
+          throw new Error('Authentication token not found. Please log in again.')
+        }
+
+        console.log('Submitting store with data:', {
+          name: values.name,
+          phone: values.phone,
+          location: values.location,
+          latitude: values.latitude,
+          longitude: values.longitude,
+          opensAt: values.opensAt,
+          closesAt: values.closesAt,
+          description: values.description,
+          hasFile: !!values.file,
+          fileName: values.file?.name
+        })
+
         const response = await axiosPostMultiPart('/api/stores/add', formData, {
           Authorization: `Bearer ${token}`,
+        })
+
+        console.log('Store submission response:', {
+          status: response.status,
+          data: response.data
         })
 
         const result = response.data
@@ -228,9 +251,12 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
         console.log('Store submitted successfully:', result)
         setError(null)
         
+        // Show success message
+        toast.success('Store submitted successfully! It will be reviewed for verification.')
+        
         // Add the new store to the context
-        if (result.store) {
-          addStore(result.store)
+        if (result.data && result.data.store) {
+          addStore(result.data.store)
         }
         
         // Refresh user stores to include the new store
@@ -256,7 +282,33 @@ export default function StoreForm({ onSubmit, className = '' }: StoreFormProps) 
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.')
+      console.error('Store submission error:', err)
+      
+      let errorMessage = 'Failed to submit. Please try again.'
+      
+      if (err instanceof Error) {
+        errorMessage = err.message
+      } else if (typeof err === 'object' && err !== null) {
+        // Handle axios error responses
+        const axiosError = err as { 
+          response?: { 
+            data?: { error?: string }
+            status?: number
+          } 
+        }
+        if (axiosError?.response?.data?.error) {
+          errorMessage = axiosError.response.data.error
+        } else if (axiosError?.response?.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.'
+        } else if (axiosError?.response?.status === 413) {
+          errorMessage = 'File too large. Please choose a smaller image.'
+        } else if (axiosError?.response?.status && axiosError.response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.'
+        }
+      }
+      
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setSubmitting(false)
     }

@@ -11,6 +11,11 @@ Word of mouth and scattered online reviews often fall short, leaving hidden gems
 
 ---
 
+## 🚀 Live Demo  
+👉 [View live demo](https://amala-joint.vercel.app/)
+
+---
+
 ## 📥 Download APK  
 👉 [Download here](https://expo.dev/accounts/timcodes/projects/amav1/builds/9d48849a-71f6-42c5-9830-24e61624ad05)  
 
@@ -19,7 +24,7 @@ Word of mouth and scattered online reviews often fall short, leaving hidden gems
 ---
 
 ## 🎬 Demo Video  
-[![Watch the video](https://img.youtube.com/vi/K6GBUt9dL-A/maxresdefault.jpg)](https://www.youtube.com/watch?v=K6GBUt9dL-A)  
+[![Watch the video](https://img.youtube.com/vi/K6GBUt9dL-A/maxresdefault.jpg)](https://www.youtube.com/watch?v=963iztD0dyM)  
 
 *Click the image to watch the demo video on YouTube*  
 

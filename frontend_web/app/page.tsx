@@ -128,20 +128,20 @@ function Page() {
             className='w-full flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 mt-8 px-4'
             variants={fadeInUp}
           >
-            <motion.button 
-              className='w-full sm:w-auto rounded-full px-6 py-3 bg-[#2c2c2c] text-sm text-white hover:opacity-90 transition-opacity'
+            <motion.a href='/home/new'
+              className='w-full sm:w-auto rounded-full px-6 py-3 bg-[#2c2c2c] text-sm text-white hover:opacity-90 transition-opacity flex items-center justify-center'  
               whileHover={hoverScale}
               whileTap={tapScale}
             >
               {t('add_spot')}
-            </motion.button>
-            <motion.button 
-              className='w-full sm:w-auto rounded-full px-6 py-3 pry-bg text-sm text-white hover:opacity-90 transition-opacity'
+            </motion.a>
+            <motion.a href='/home'
+              className='w-full sm:w-auto rounded-full px-6 py-3 pry-bg text-sm text-white hover:opacity-90 transition-opacity flex items-center justify-center'
               whileHover={hoverScale}
               whileTap={tapScale}
             >
               {t('explore_map')}
-            </motion.button>
+            </motion.a>
           </motion.div>
           <motion.div 
             className='w-full mt-12 mb-8 flex justify-center items-center'

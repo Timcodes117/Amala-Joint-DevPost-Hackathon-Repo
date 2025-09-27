@@ -22,8 +22,10 @@ export const axiosPostMultiPart = async (
   file: FormData,
   additionalHeaders?: Record<string, string>
 ) => {
+  // Remove Content-Type from headers to let axios set it automatically with boundary
+  const { "Content-Type": _, ...headersWithoutContentType } = headers;
   return axios.post(`${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}` , file, {
-    headers: { ...headers, ...additionalHeaders, "Content-Type": "multipart/form-data" },
+    headers: { ...headersWithoutContentType, ...additionalHeaders },
   });
 };
 

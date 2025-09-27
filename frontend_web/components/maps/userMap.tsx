@@ -3,6 +3,7 @@
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import { getCurrentLocation, FALLBACK_LOCATION } from "@/utils/geolocation";
 
 const containerStyle = {
   width: "100%",
@@ -11,8 +12,8 @@ const containerStyle = {
   borderRadius: "30px",
 };
 
-// Default location if user denies permission
-const fallbackCenter = { lat: 6.5244, lng: 3.3792 };
+// Use the fallback location from utils
+const fallbackCenter = FALLBACK_LOCATION;
 
 // Stable libraries array to avoid reload warning
 const LIBRARIES: ("marker")[] = ["marker"];
@@ -51,8 +52,9 @@ export default function UserLocationMap() {
   const { theme } = useTheme();
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: 'AIzaSyALRlD6xsTbkQAnOaBTNyvymzrU908sMB8',
-    libraries: LIBRARIES, // ✅ stable reference
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY as string,
+    libraries: LIBRARIES,
+    preventGoogleFontsLoading: true,
   });
 
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null);
@@ -66,18 +68,21 @@ export default function UserLocationMap() {
 
   // Get user location
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) =>
-          setUserLocation({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          }),
-        () => setUserLocation(fallbackCenter)
-      );
-    } else {
-      setUserLocation(fallbackCenter);
-    }
+    const fetchUserLocation = async () => {
+      try {
+        const location = await getCurrentLocation();
+        setUserLocation({ lat: location.lat, lng: location.lng });
+        
+        if (location.error) {
+          console.warn('Geolocation warning:', location.error);
+        }
+      } catch (error) {
+        console.error('Error getting location:', error);
+        setUserLocation(fallbackCenter);
+      }
+    };
+
+    fetchUserLocation();
   }, []);
 
   // Add regular Marker once map + location ready
@@ -120,10 +125,26 @@ export default function UserLocationMap() {
   }, [userLocation, isLoaded]);
 
   if (loadError) {
-    return <p>Error loading map: {loadError.message}</p>;
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-[30px]">
+        <div className="text-center space-y-2">
+          <p className="text-red-600 dark:text-red-400">Error loading map</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{loadError.message}</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!isLoaded) return <p>Loading map...</p>;
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-[30px]">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <GoogleMap

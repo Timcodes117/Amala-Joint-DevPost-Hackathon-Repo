@@ -12,6 +12,7 @@ import { useSavedPlaces } from '@/hooks/useSavedPlaces'
 import { useRouter } from 'next/navigation'
 import { FilterOptions } from '@/components/FilterPopover'
 import VerificationModal from '@/components/verification-modal'
+import MapErrorBoundary from '@/components/MapErrorBoundary'
 
   function Page() { 
     const { location, getCurrentLocation } = useApp()
@@ -167,7 +168,9 @@ import VerificationModal from '@/components/verification-modal'
 
       <div className='w-full flex-1 min-h-0 flex flex-col md:overflow-y-auto csb gap-4 overscroll-contain mt-2'>
           <div  className='relative md:hidden flex flex-row items-center justify-end w-full min-h-[200px] overflow-hidden rounded-xl bg-gray-100 mb-2'>
-            <StoresMap />
+            <MapErrorBoundary>
+              <StoresMap />
+            </MapErrorBoundary>
             <Link
               href='?mobileMap=1'
               className='md:hidden absolute top-3 right-3 px-3 py-2 rounded-full bg-black/80 text-white text-sm'
@@ -218,7 +221,7 @@ import VerificationModal from '@/components/verification-modal'
               window.open(url, '_blank')
             }}
             onExplore={() => {
-              console.log('Explore place:', place.name)
+              router.push(`/home/${place.place_id}`);
             }}
             onToggleFavorite={(isFavorite) => {
               if (isFavorite) {
@@ -248,24 +251,10 @@ import VerificationModal from '@/components/verification-modal'
           <Plus size={24} />
         </Link>
       ) : (
-        <div className='fixed md:absolute bottom-6 right-6 z-40'>
-          <div className='flex flex-col gap-2'>
-            <Link 
-              href='/auth/login'
-              className='h-12 w-12 rounded-full pry-bg text-white flex items-center justify-center shadow-lg shadow-black/20 hover:opacity-90 active:opacity-80'
-              aria-label='Login to add store'
-            >
-              <span className='text-xs font-medium'>Login</span>
-            </Link>
-            <Link 
-              href='/auth/signup'
-              className='h-12 w-12 rounded-full bg-white border-2 border-gray-300 text-gray-700 flex items-center justify-center shadow-lg shadow-black/20 hover:bg-gray-50 active:opacity-80'
-              aria-label='Sign up to add store'
-            >
-              <span className='text-xs font-medium'>Signup</span>
-            </Link>
-          </div>
-        </div>
+        <Link href='/auth/login' aria-label='Add new store'
+          className='fixed md:absolute bottom-6 right-6 z-40 h-14 w-14 rounded-full pry-bg text-white flex items-center justify-center shadow-lg shadow-black/20 hover:opacity-90 active:opacity-80'>
+          <Plus size={24} />
+        </Link>
         )}
 
         {/* Verification Modal */}

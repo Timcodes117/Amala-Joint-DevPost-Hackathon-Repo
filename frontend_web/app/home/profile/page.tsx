@@ -28,9 +28,9 @@ function ProfilePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen ">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-white border-b">
+        <div className="flex items-center justify-between p-4 border-b">
           <button
             onClick={() => router.back()}
             className="p-2 rounded-full hover:bg-gray-100"
@@ -79,7 +79,7 @@ function ProfilePage() {
                 {savedPlaces.slice(0, 2).map((place) => (
                   <div
                     key={place.place_id}
-                    className="flex items-center bg-white rounded-lg p-3 border hover:shadow-sm transition-shadow cursor-pointer"
+                    className="flex items-center bg-white/20 rounded-lg p-3 border hover:shadow-sm transition-shadow cursor-pointer"
                     onClick={() => handlePlaceClick(place)}
                   >
                     <div className="w-16 h-16 rounded-lg bg-gray-200 mr-3 overflow-hidden">
@@ -92,7 +92,7 @@ function ProfilePage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <div className="w-full h-full bg-gray-200/20 flex items-center justify-center">
                           <span className="text-gray-400 text-xs">No Image</span>
                         </div>
                       )}
@@ -107,7 +107,7 @@ function ProfilePage() {
                       {place.rating && (
                         <div className="flex items-center text-xs text-gray-500 mt-1">
                           <Star size={12} className="mr-1" />
-                          <span>{place.rating} ({place.user_ratings_total || 0})</span>
+                          <span>{place.rating.toFixed(1)}</span>
                         </div>
                       )}
                     </div>
@@ -125,7 +125,7 @@ function ProfilePage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg p-6 text-center border">
+              <div className="bg-white/20 rounded-lg p-6 text-center border">
                 <p className="text-gray-500">No saved places yet</p>
                 <p className="text-sm text-gray-400 mt-1">
                   Save your favorite restaurants to see them here
@@ -135,7 +135,7 @@ function ProfilePage() {
           </div>
 
           {/* Settings Section */}
-          <div className="bg-white rounded-lg border">
+          <div className="bg-white/10 rounded-lg border">
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-between p-4 text-red-600 hover:bg-gray-50 rounded-lg"

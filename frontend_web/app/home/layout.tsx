@@ -15,6 +15,7 @@ import StoreForm from '@/components/store_form';
 import VerifyResultsContainer from '@/components/verify-results-container';
 import { useStores } from '@/contexts/StoreContext';
 import { ClipboardProvider } from '@/contexts/ClipboardContext';
+import MapErrorBoundary from '@/components/MapErrorBoundary';
 
 const PageHead = () => (
   <Head>
@@ -38,7 +39,7 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
   // Use the store context
   const { unverifiedStores, loadingStores, ignoreStore } = useStores()
 
-  const DUMMY: SearchResult[] = React.useMemo(
+  const DUMMY: any[] = React.useMemo(
     () =>
       new Array(8).fill(0).map((_, i) => ({
         id: `spot-${i}`,
@@ -187,7 +188,9 @@ function HomeLayoutContent({children}:{children: React.ReactNode}) {
 
         </div>
         {rightView === 'map' ? (
-          <StoresMap />
+          <MapErrorBoundary>
+            <StoresMap />
+          </MapErrorBoundary>
         ) : (
           <div className='w-full h-full overflow-y-auto csb pt-16 px-4'>
             {loadingStores ? (
