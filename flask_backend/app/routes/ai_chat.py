@@ -5,7 +5,6 @@ from services.location import LocationService
 import requests
 import os
 import traceback
-from services.agent import TranslateAgent
 import json
 from dotenv import load_dotenv
 import logging
@@ -100,7 +99,6 @@ navigate_bp = Blueprint('navigate', __name__)
 amala_finder_bp = Blueprint('amala_finder', __name__)
 planner_bp = Blueprint('planner', __name__)
 amala_ai_bp = Blueprint('amala_ai', __name__)
-translate_bp = Blueprint('translate', __name__)
 
 
 
@@ -144,33 +142,6 @@ def safe_agent_response(response):
 @jwt_required()
 def list_users():
     return jsonify({'success': True, 'data': "response"}), 200
-
-@translate_bp.route("/translate", methods=['OPTIONS'])
-def translate_text_options():
-    """Handle CORS preflight requests for translate endpoint"""
-    return '', 200
-
-@translate_bp.post("/translate")
-def translate_text():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "Invalid JSON"}), 400
-
-        text = data.get("text")
-        source_lang = data.get("source_lang", "en-GB")
-        target_lang = data.get("target_lang", "yo-NG")
-
-        if not text:
-            return jsonify({"error": "Text is required"}), 400
-
-        agent = TranslateAgent(source_lang=source_lang, target_lang=target_lang)
-        result = agent.run(text)
-
-        return jsonify(result), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500    
 
 @ai_chatbot_bp.route('/chat', methods=['OPTIONS'])
 def chat_options():
